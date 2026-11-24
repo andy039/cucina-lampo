@@ -913,7 +913,7 @@ function moveMark(s,now){
   for(let i=0;i<4;i++){X.save();X.translate(cx,cy);X.rotate(i*Math.PI/2);X.beginPath();X.moveTo(r*.78,0);X.lineTo(r*.42,-r*.26);X.lineTo(r*.42,r*.26);X.closePath();X.fill();X.fillRect(0,-r*.06,r*.45,r*.12);X.restore();}
 }
 function drawChef(chef,now){
-  const u=TS,cx=chef.cx*u,cy=chef.cy*u,b=Math.abs(Math.sin(chef.walk))*u*.03,fx=chef.fx,fy=chef.fy;
+  const u=TS,cx=(chef.dx!=null?chef.dx:chef.cx)*u,cy=(chef.dy!=null?chef.dy:chef.cy)*u,b=Math.abs(Math.sin(chef.walk))*u*.03,fx=chef.fx,fy=chef.fy;
   shadow(cx,cy+u*.24,u*.36,u*.13,.25);
   const ang=Math.atan2(fy,fx);
   if(G.two){X.strokeStyle=chef.i?'#2f6db3':'#c63a2a';X.lineWidth=2.5;X.beginPath();X.ellipse(cx,cy+u*.22,u*.36,u*.14,0,0,Math.PI*2);X.stroke();}
@@ -1036,10 +1036,12 @@ function onNet(m){
       if(c&&typeof m.x==='number'&&typeof m.y==='number'&&!hits(m.x,m.y)){c.cx=m.x;c.cy=m.y;}
       if(c&&typeof m.fx==='number'){c.fx=m.fx;c.fy=m.fy;}
       if(c&&m.t==='pos'){c.rm=!!m.m;if(typeof m.w==='number')c.walk=m.w;}
+      if(c)pushSample(c,c.cx,c.cy);
       if(m.t==='use')use(1);}
   }
   else if(NET.role==='guest'){
     if(m.t==='snap')applySnap(m.d);
+    else if(m.t==='cp'){const c=chefs.find(c=>c.i===0);if(c){c.fx=m.fx;c.fy=m.fy;c.walk=m.w;c.hasCp=true;pushSample(c,m.x,m.y);}}
     else if(m.t==='say'){$('hint').textContent=m.m;$('hint').className='say';toastT=2.6;}
     else if(m.t==='over'){$('osum').innerHTML=m.html;$('wait').classList.remove('on');$('over').classList.add('on');}
   }
@@ -1064,6 +1066,9 @@ function snapshot(){
 function hostTick(dt){
   if(!NET.peer||NET.role!=='host')return;
   NET.snapT-=dt;if(NET.snapT<=0){NET.snapT=.1;netSend({t:'snap',d:snapshot()});}
+  NET.cpT=(NET.cpT||0)-dt;const h=chefs[0];
+  if(h&&NET.cpT<=0){NET.cpT=.033;const sg=h.cx.toFixed(3)+','+h.cy.toFixed(3)+','+h.fx.toFixed(2);if(sg!==NET.cpLast||NET.cpIdle<=0){netSend({t:'cp',x:+h.cx.toFixed(3),y:+h.cy.toFixed(3),fx:+h.fx.toFixed(2),fy:+h.fy.toFixed(2),w:+h.walk.toFixed(1)});NET.cpLast=sg;NET.cpIdle=.4;}}
+  NET.cpIdle=(NET.cpIdle||0)-dt;
 }
 function guestTick(dt){
   const me=chefs.find(c=>c.i===1);if(!me)return;
@@ -1073,7 +1078,7 @@ function guestTick(dt){
   me.tx=me.cx;me.ty=me.cy;me.face=facing(me);
   NET.inT-=dt;
   const sig=me.cx.toFixed(2)+','+me.cy.toFixed(2)+','+(mv?1:0)+','+me.fx.toFixed(1)+','+me.fy.toFixed(1);
-  if(NET.inT<=0||(sig!==NET.lastIn&&NET.posT<=0)){netSend({t:'pos',x:+me.cx.toFixed(3),y:+me.cy.toFixed(3),fx:+me.fx.toFixed(2),fy:+me.fy.toFixed(2),w:+me.walk.toFixed(1),m:mv?1:0});NET.lastIn=sig;NET.inT=.5;NET.posT=.05;}
+  if(NET.inT<=0||(sig!==NET.lastIn&&NET.posT<=0)){netSend({t:'pos',x:+me.cx.toFixed(3),y:+me.cy.toFixed(3),fx:+me.fx.toFixed(2),fy:+me.fy.toFixed(2),w:+me.walk.toFixed(1),m:mv?1:0});NET.lastIn=sig;NET.inT=.4;NET.posT=.033;}
   NET.posT=(NET.posT||0)-dt;
 }
 function applySnap(d){
@@ -1096,7 +1101,7 @@ function applySnap(d){
   G.queue=d.q.map(q=>({pat:q[0],max:q[1],shirt:q[2],skin:q[3],hair:q[4],style:q[5]}));
   const prev=chefs;
   chefs=d.c.map(a=>{const o=prev.find(p=>p.i===a[0]);const mine=a[0]===1&&o;
-    return {i:a[0],cx:mine?o.cx:o?o.cx:a[1],cy:mine?o.cy:o?o.cy:a[2],tx:mine?o.cx:a[1],ty:mine?o.cy:a[2],fx:mine?o.fx:a[3],fy:mine?o.fy:a[4],walk:mine?o.walk:a[5],h:a[6]||null,work:S[a[7]]||null,face:mine?o.face:S[a[8]]||null};});
+    return {buf:o?o.buf:[],hasCp:o?o.hasCp:false,dx:o?o.dx:null,dy:o?o.dy:null,i:a[0],cx:mine?o.cx:o?o.cx:a[1],cy:mine?o.cy:o?o.cy:a[2],tx:mine?o.cx:a[1],ty:mine?o.cy:a[2],fx:mine||(o&&o.hasCp)?o.fx:a[3],fy:mine||(o&&o.hasCp)?o.fy:a[4],walk:mine||(o&&o.hasCp)?o.walk:a[5],h:a[6]||null,work:S[a[7]]||null,face:mine?o.face:S[a[8]]||null};});
   const me=chefs.find(c=>c.i===1);
   if(me&&(!G.running||hits(me.cx,me.cy)||Math.hypot(me.cx-d.c[1][1],me.cy-d.c[1][2])>3)){const a=d.c.find(a=>a[0]===1);if(a){me.cx=me.tx=a[1];me.cy=me.ty=a[2];}}
   floats=d.fl.map(f=>({x:f[0],y:f[1],t:f[2],txt:f[3]}));G.sel=d.sel>=0?S[d.sel]:null;
@@ -1106,6 +1111,16 @@ function applySnap(d){
   if(G.paused&&G.running){$('hint').textContent='L\'host ha messo in pausa';$('hint').className='say';toastT=.3;}
 }
 
+/* interpolazione del cuoco dell'altro giocatore: si mostra con 120 ms di ritardo, scorrendo tra le posizioni ricevute */
+const IDELAY=120;
+function pushSample(c,x,y){const b=c.buf||(c.buf=[]);const t=performance.now();if(b.length&&t-b[b.length-1].t<4)b[b.length-1]={t,x,y};else b.push({t,x,y});if(b.length>30)b.shift();}
+function interp(c){
+  const b=c.buf,rt=performance.now()-IDELAY;
+  if(rt<=b[0].t){c.dx=b[0].x;c.dy=b[0].y;return;}
+  const l=b[b.length-1];
+  if(rt>=l.t){c.dx=l.x;c.dy=l.y;return;}
+  for(let k=b.length-2;k>=0;k--)if(b[k].t<=rt){const a=b[k],n=b[k+1],f=(rt-a.t)/Math.max(1,n.t-a.t);c.dx=a.x+(n.x-a.x)*f;c.dy=a.y+(n.y-a.y)*f;return;}
+}
 /* ---------- audio ---------- */
 const AU={ctx:null,mus:null,fx:null,vm:.6,vs:.8,on:false,next:0,step:0,timer:null,nb:null};
 try{const v=JSON.parse(localStorage.getItem('cl-vol')||'null');if(v){AU.vm=+v.m;AU.vs=+v.s;}}catch(e){}
@@ -1207,8 +1222,8 @@ const ro=new ResizeObserver(resize);ro.observe($('wrap'));resize();
 let last=performance.now();
 function loop(t){
   const dt=Math.min(.05,(t-last)/1000);last=t;
-  if(G&&G.guest){for(const c of chefs)if(c.i!==1){c.cx+=(c.tx-c.cx)*Math.min(1,dt*14);c.cy+=(c.ty-c.cy)*Math.min(1,dt*14);}guestTick(dt);}
-  else if(G&&G.online)hostTick(dt);
+  if(G&&G.guest){for(const c of chefs)if(c.i!==1){if(c.hasCp&&c.buf.length){interp(c);c.cx=c.dx;c.cy=c.dy;}else{c.cx+=(c.tx-c.cx)*Math.min(1,dt*14);c.cy+=(c.ty-c.cy)*Math.min(1,dt*14);c.dx=c.dy=null;}}guestTick(dt);}
+  else if(G&&G.online){hostTick(dt);const c=chefs[1];if(c&&c.buf&&c.buf.length)interp(c);}
   if(G&&G.running&&!G.paused&&!G.guest){update(dt);
     for(const p of parts){p.t-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;}parts=parts.filter(p=>p.t>0);if(parts.length>160)parts.splice(0,parts.length-160);}
   toastT-=dt;floats.forEach(f=>f.t-=dt);
