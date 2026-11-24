@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="inchiostro">#1c1f1b</color>
+    <!-- tema scuro come il gioco: niente barra del titolo, barre di sistema dello stesso colore -->
+    <style name="Lampo" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/inchiostro</item>
+        <item name="android:colorBackground">@color/inchiostro</item>
+        <item name="android:statusBarColor">@color/inchiostro</item>
+        <item name="android:navigationBarColor">@color/inchiostro</item>
+    </style>
+</resources>
