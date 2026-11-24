@@ -6,20 +6,40 @@ const http = require('http');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
 
 const PORT = process.env.PORT || 3000;
 const GAME = process.env.GAME_FILE || path.join(__dirname, 'index.html');
 const MAX_MSG = 1 << 20;            // 1 MB per messaggio
 const ROOM_SIZE = 2;                // host + 1 ospite
+const BACKLOG = 64 * 1024;          // oltre questa coda verso un giocatore si saltano gli aggiornamenti di posizione
 const rooms = new Map();            // codice -> { host, guests: [] }
 let lastCode = '';
 
-function page(res) {
-  fs.readFile(GAME, 'utf8', (err, html) => {
+// la pagina del gioco si legge una volta e si tiene in memoria, anche già compressa; si rilegge solo se il file cambia
+let pageCache = null;
+function loadPage(cb) {
+  fs.stat(GAME, (err, st) => {
+    if (err) return cb(err);
+    if (pageCache && pageCache.mtime === st.mtimeMs && pageCache.size === st.size) return cb(null, pageCache);
+    fs.readFile(GAME, 'utf8', (err, html) => {
+      if (err) return cb(err);
+      const body = Buffer.from(html.replace('/*CL_SERVER*/', 'window.CL_SERVER=location.origin;'));
+      pageCache = { mtime: st.mtimeMs, size: st.size, body, gz: zlib.gzipSync(body, { level: 9 }) };
+      cb(null, pageCache);
+    });
+  });
+}
+function page(req, res) {
+  loadPage((err, p) => {
     if (err) { res.writeHead(500, { 'content-type': 'text/plain; charset=utf-8' }); res.end('Manca index.html accanto a server.js'); return; }
-    html = html.replace('/*CL_SERVER*/', 'window.CL_SERVER=location.origin;');
-    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' });
-    res.end(html);
+    const gz = /\bgzip\b/.test(req.headers['accept-encoding'] || '');
+    const h = { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache', vary: 'accept-encoding' };
+    if (gz) h['content-encoding'] = 'gzip';
+    const body = gz ? p.gz : p.body;
+    h['content-length'] = body.length;
+    res.writeHead(200, h);
+    res.end(req.method === 'HEAD' ? undefined : body);
   });
 }
 
@@ -42,7 +62,7 @@ const server = http.createServer((req, res) => {
   if (url === '/health') { res.writeHead(200, { 'content-type': 'text/plain' }); res.end('ok'); return; }
   if (url === '/stats') { res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ stanze: rooms.size })); return; }
   if (process.env.TEST && url === '/testcode') { res.end(lastCode); return; }
-  if (url === '/' || url === '/index.html') return page(res);
+  if (url === '/' || url === '/index.html') return page(req, res);
   res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' }); res.end('Non trovato');
 });
 
@@ -55,10 +75,14 @@ function frame(op, payload) {
   return Buffer.concat([head, payload]);
 }
 
+// aggiornamenti continui (stato, posizioni): se uno resta indietro conta solo l'ultimo, quindi si possono saltare
+const LIVE = ['{"t":"snap"', '{"t":"cp"', '{"t":"pos"'].map(s => Buffer.from(s));
+const isLive = p => LIVE.some(k => p.length >= k.length && p.compare(k, 0, k.length, 0, k.length) === 0);
+
 class Conn {
   constructor(sock) {
     this.sock = sock; this.buf = Buffer.alloc(0); this.frags = []; this.room = null; this.dead = false; this.seen = Date.now();
-    sock.on('data', d => { this.seen = Date.now(); this.buf = Buffer.concat([this.buf, d]); try { this.parse(); } catch (e) { this.kill(); } });
+    sock.on('data', d => { this.seen = Date.now(); this.buf = this.buf.length ? Buffer.concat([this.buf, d]) : d; try { this.parse(); } catch (e) { this.kill(); } });
     sock.on('close', () => this.kill());
     sock.on('error', () => this.kill());
   }
@@ -80,20 +104,24 @@ class Conn {
       if (op === 9) { this.write(frame(10, p)); continue; }
       if (op === 10) continue;
       this.frags.push(p);
-      if (fin) { const text = Buffer.concat(this.frags).toString('utf8'); this.frags = []; this.onMessage(text); }
+      if (fin) { const msg = this.frags.length === 1 ? this.frags[0] : Buffer.concat(this.frags); this.frags = []; this.onMessage(msg); }
     }
   }
   write(buf) { if (!this.dead) { try { this.sock.write(buf); } catch (e) { this.kill(); } } }
   send(obj) { this.write(frame(1, Buffer.from(typeof obj === 'string' ? obj : JSON.stringify(obj)))); }
-  onMessage(text) {
+  // inoltra il messaggio così com'è, senza ricodificarlo; salta gli aggiornamenti continui se il destinatario è indietro
+  relay(to, f, live) { if (live && to.sock.writableLength > BACKLOG) return; to.write(f); }
+  onMessage(p) {
     let m = null;
-    if (text.length < 300) { try { m = JSON.parse(text); } catch (e) { return; } }
+    const live = isLive(p);
+    if (!live && p.length < 300) { try { m = JSON.parse(p.toString('utf8')); } catch (e) { return; } }
     if (m && m.t === 'ping') { this.send({ t: 'pong' }); return; }
     if (m && m.t === 'create') { this.leave(); this.create(); return; }
     if (m && m.t === 'join') { this.leave(); this.join(String(m.code || '').toUpperCase()); return; }
     const r = this.room; if (!r) return;
-    if (r.host === this) r.guests.forEach(g => g.send(text));
-    else if (r.host) r.host.send(text);
+    const f = frame(1, p);
+    if (r.host === this) r.guests.forEach(g => this.relay(g, f, live));
+    else if (r.host) this.relay(r.host, f, live);
   }
   create() {
     const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ';

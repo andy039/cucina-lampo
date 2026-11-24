@@ -90,6 +90,11 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 .rec b{font-weight:500}.rec .pr{margin-left:auto;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--mut);align-self:flex-start}
 .rec small{display:block;color:var(--mut);font-size:14px;line-height:1.35}
 .rec.lock{opacity:.45}
+.offer canvas{width:44px;height:44px;flex:none;border-radius:8px}
+.hero{margin:auto;width:100%;max-width:320px;display:flex;flex-direction:column;align-items:center;text-align:center}
+.hero canvas{width:128px;height:128px;border-radius:28px;box-shadow:0 10px 30px rgba(0,0,0,.35);margin-bottom:22px}
+.hero h1{font-size:40px;margin-bottom:32px}
+.hero .pri{margin-top:0}
 </style></head><body>
 <header>
   <div class="day" id="day">Giorno 1</div>
@@ -104,7 +109,13 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 <div class="bar" id="ctrl"><div class="pad" id="pad0"><i></i></div><button class="use" id="use0">Usa</button><button class="use b p2" id="use1">Usa</button><div class="pad b p2" id="pad1"><i></i></div></div>
 <div class="bar" id="editbar"><p>Trascina col dito gli oggetti della cucina dove vuoi</p><button class="pri" id="done" style="width:auto;margin:0">Fatto</button></div>
 
-<div class="ov on" id="menu"><div class="card">
+<div class="ov on" id="start"><div class="hero">
+  <canvas id="logo" aria-hidden="true"></canvas>
+  <h1>Cucina Lampo</h1>
+  <button class="pri" id="startPlay">Gioca</button>
+</div></div>
+
+<div class="ov" id="menu"><div class="card">
   <h1>Cucina Lampo</h1>
   <p>Cucina, servi, lava i piatti. Ogni giorno arrivano più clienti e nuove ricette, senza fine.</p>
   <h3>Locale</h3>
@@ -400,7 +411,7 @@ function facing(chef){
   }
   return best;
 }
-function use(i){if(G&&G.guest){const c=chefs.find(c=>c.i===1);netSend(c?{t:'use',x:+c.cx.toFixed(3),y:+c.cy.toFixed(3),fx:+c.fx.toFixed(2),fy:+c.fy.toFixed(2)}:{t:'use'});return;}const c=chefs[i];if(c&&G&&G.running&&!G.paused&&!G.edit){c.work=null;G.sayTo=i;G.inUse=i===0;try{interact(c,facing(c));}finally{G.sayTo=0;G.inUse=false;}}}
+function use(i){if(G&&G.guest){const c=chefs.find(c=>c.i===1);netSend(c?{t:'use',ts:Math.round(performance.now()),x:+c.cx.toFixed(3),y:+c.cy.toFixed(3),fx:+c.fx.toFixed(2),fy:+c.fy.toFixed(2),w:+c.walk.toFixed(1)}:{t:'use'});return;}const c=chefs[i];if(c&&G&&G.running&&!G.paused&&!G.edit){c.work=null;G.sayTo=i;G.inUse=i===0;try{interact(c,facing(c));}finally{G.sayTo=0;G.inUse=false;}if(G.online)NET.snapT=0;}}
 
 const PADS=[0,1].map(i=>{
   const el=$('pad'+i),kn=el.querySelector('i'),P={el,kn,id:null};
@@ -476,6 +487,55 @@ function iconCanvas(size,fn){
   c.width=size*d;c.height=size*d;const ctx=c.getContext('2d');ctx.scale(d,d);
   const sv=X;X=ctx;try{fn(size)}finally{X=sv;}return c;
 }
+/* icone del negozio: le postazioni sono quelle vere in miniatura, i miglioramenti sono disegnati apposta */
+function offerIcon(ic,u){
+  X.fillStyle='#efebe3';rr(0,0,u,u,8);X.fill();
+  if(ic&&typeof ic==='object'){
+    const tb=ic.type==='table',sv=TS;TS=u*(tb?.64:.8);
+    X.save();X.translate((u-TS)/2,tb?u/2-TS*.48:(u-TS)/2);
+    try{
+      if(tb){const t=G.L.table,w=TS;X.fillStyle=t==='low'?'#6d5a8a':t==='diner'?'#b8322a':t==='white'?'#4a3326':'#7a5132';rr(w*.28,w*.86,w*.44,w*.3,w*.07);X.fill();}
+      drawStation(mkStation(Object.assign({x:0,y:0},ic)),0);
+      if(tb)plate(TS/2,TS*.56,TS*.17,false);
+    }finally{TS=sv;X.restore();}
+    return;
+  }
+  const c=u/2;
+  switch(ic){
+  case 'sp':// scarpe comode
+    shadow(c,u*.78,u*.4,u*.06,.18);
+    X.fillStyle='#c63a2a';X.beginPath();X.moveTo(u*.13,u*.7);X.lineTo(u*.15,u*.36);X.quadraticCurveTo(u*.17,u*.29,u*.26,u*.31);X.lineTo(u*.42,u*.38);X.quadraticCurveTo(u*.6,u*.45,u*.78,u*.5);X.quadraticCurveTo(u*.9,u*.54,u*.89,u*.7);X.closePath();X.fill();
+    X.fillStyle='#8e2a1e';rr(u*.13,u*.33,u*.07,u*.36,u*.03);X.fill();
+    X.fillStyle='#fbf9f4';rr(u*.1,u*.66,u*.82,u*.12,u*.05);X.fill();X.fillStyle='#d6d0c3';X.fillRect(u*.12,u*.74,u*.78,u*.03);
+    X.fillStyle='rgba(255,255,255,.9)';for(let i=0;i<3;i++){X.save();X.translate(u*(.34+i*.1),u*(.41+i*.035));X.rotate(.35);rr(-u*.06,-u*.017,u*.12,u*.034,u*.017);X.fill();X.restore();}
+    break;
+  case 'pa':// cestino di grissini
+    shadow(c,u*.86,u*.3,u*.06,.18);
+    for(let i=0;i<5;i++){X.save();X.translate(u*(.3+i*.1),u*.58);X.rotate((i-2)*.16);X.fillStyle='#c98f3e';rr(-u*.035,-u*.46,u*.07,u*.5,u*.035);X.fill();X.fillStyle='#efcb7e';rr(-u*.018,-u*.44,u*.024,u*.44,u*.012);X.fill();X.restore();}
+    X.fillStyle='#9a6a35';X.beginPath();X.moveTo(u*.2,u*.52);X.lineTo(u*.8,u*.52);X.lineTo(u*.72,u*.86);X.lineTo(u*.28,u*.86);X.closePath();X.fill();
+    X.strokeStyle='#7a5128';X.lineWidth=Math.max(1,u*.025);for(let i=0;i<3;i++){const y=u*(.61+i*.08);X.beginPath();X.moveTo(u*(.23+i*.02),y);X.lineTo(u*(.77-i*.02),y);X.stroke();}
+    X.fillStyle='#b57d42';rr(u*.16,u*.48,u*.68,u*.08,u*.04);X.fill();
+    break;
+  case 'pl':// piatti in più
+    for(let i=0;i<3;i++)plate(c,u*.64-i*u*.09,u*.32,false);
+    break;
+  case 'po':{// fuochi potenti
+    shadow(c,u*.82,u*.34,u*.07,.2);circ(c,u*.66,u*.32,'#43474b');circ(c,u*.66,u*.24,'#2b2e31');
+    const fl=(x,y,s,col)=>{X.fillStyle=col;X.beginPath();X.moveTo(x,y-s);X.quadraticCurveTo(x+s*.6,y-s*.2,x+s*.42,y+s*.2);X.quadraticCurveTo(x,y+s*.5,x-s*.42,y+s*.2);X.quadraticCurveTo(x-s*.6,y-s*.2,x,y-s);X.fill();};
+    fl(c,u*.5,u*.4,'#e0533f');fl(c,u*.56,u*.27,'#f0a23a');fl(c,u*.61,u*.14,'#ffe08a');
+    break;}
+  case 'kn':{// coltello affilato
+    shadow(c,u*.8,u*.34,u*.05,.15);
+    X.save();X.translate(c,u*.54);X.rotate(-.7);
+    X.fillStyle='#2b2b2b';rr(-u*.44,-u*.065,u*.27,u*.13,u*.05);X.fill();
+    circ(-u*.37,0,u*.02,'#c9ced2');circ(-u*.26,0,u*.02,'#c9ced2');
+    X.fillStyle='#b9c0c5';X.beginPath();X.moveTo(-u*.17,-u*.09);X.lineTo(u*.3,-u*.09);X.quadraticCurveTo(u*.43,-u*.07,u*.45,u*.02);X.lineTo(u*.3,u*.075);X.lineTo(-u*.17,u*.075);X.closePath();X.fill();
+    X.fillStyle='#eef1f3';X.fillRect(-u*.17,u*.03,u*.47,u*.035);
+    X.restore();
+    const sx=u*.79,sy=u*.21,s=u*.11;X.fillStyle='#e0a33a';X.beginPath();X.moveTo(sx,sy-s);X.quadraticCurveTo(sx,sy,sx+s,sy);X.quadraticCurveTo(sx,sy,sx,sy+s);X.quadraticCurveTo(sx,sy,sx-s,sy);X.quadraticCurveTo(sx,sy,sx,sy-s);X.fill();
+    break;}
+  }
+}
 function openBook(){
   if(!G)return;
   G.paused=true;padReset();$('bookBtn').classList.remove('new');
@@ -523,6 +583,7 @@ function update(dt){
   for(const chef of chefs){
   const remote=G.online&&chef.i===1;
   const v=remote?{x:0,y:0}:input(chef.i),mag=Math.hypot(v.x,v.y);
+  chef.mv=!remote&&mag>.18;
   if(remote&&chef.rm){chef.work=null;}
   else if(mag>.18){
     chef.work=null;
@@ -547,11 +608,11 @@ function update(dt){
 function offerList(){
   const L=[];
   const procs=[...new Set(S.filter(s=>s.type==='proc').map(s=>s.p))];
-  for(const p of procs)if(S.filter(s=>s.type==='proc'&&s.p===p).length<2)L.push({name:PN[p]+' in più',d:'Due cose insieme invece di una',cost:p==='board'?18:28,fx:()=>addStation({type:'proc',p})});
-  if(G.counters<4)L.push({name:'Bancone in più',d:'Più spazio per appoggiare',cost:10,fx:()=>{if(addStation({type:'counter'}))G.counters++;}});
+  for(const p of procs)if(S.filter(s=>s.type==='proc'&&s.p===p).length<2)L.push({ic:{type:'proc',p},name:PN[p]+' in più',d:'Due cose insieme invece di una',cost:p==='board'?18:28,fx:()=>addStation({type:'proc',p})});
+  if(G.counters<4)L.push({ic:{type:'counter'},name:'Bancone in più',d:'Più spazio per appoggiare',cost:10,fx:()=>{if(addStation({type:'counter'}))G.counters++;}});
   const nt=S.filter(s=>s.type==='table').length;
-  if(nt<TABLE_SPOTS.length)L.push({name:'Tavolo in più',d:'Un posto in più in sala',cost:20+nt*5,fx:()=>{addTable();makeBg();}});
-  const up=(id,max,name,d,cost,fx)=>{if((G.up[id]||0)<max)L.push({id,name,d,cost,fx});};
+  if(nt<TABLE_SPOTS.length)L.push({ic:{type:'table',seat:0},name:'Tavolo in più',d:'Un posto in più in sala',cost:20+nt*5,fx:()=>{addTable();makeBg();}});
+  const up=(id,max,name,d,cost,fx)=>{if((G.up[id]||0)<max)L.push({id,ic:id,name,d,cost,fx});};
   up('sp',3,'Scarpe comode','Lo chef cammina più veloce',18,()=>G.speed*=1.15);
   up('pa',4,'Cestino di grissini','I clienti aspettano di più',22,()=>G.patMul*=1.15);
   up('pl',4,'Piatti in più','Due piatti puliti in più',12,()=>G.maxPlates+=2);
@@ -569,6 +630,7 @@ function endDay(){
   const av=offerList(),box=$('offers');box.innerHTML='';
   av.forEach(u=>{
     const b=document.createElement('button');b.className='offer';
+    b.append(iconCanvas(44,s=>offerIcon(u.ic,s)));
     const t=document.createElement('div'),n=document.createElement('b'),d=document.createElement('small');
     n.textContent=u.name;d.textContent=u.d;t.append(n,d);
     const c=document.createElement('span');c.className='cost';c.textContent=u.cost+' €';
@@ -639,8 +701,9 @@ $('quitYes').addEventListener('click',()=>{
   document.body.classList.remove('editing','two');
   $('day').textContent='Giorno 1';$('coins').textContent='0 €';$('clock').style.width='0';$('hearts').innerHTML='';
   $('hint').textContent='Pad per muoverti, Usa davanti a una postazione';$('hint').className='';
-  renderMenu();$('menu').classList.add('on');
+  renderMenu();$('start').classList.add('on');
 });
+$('startPlay').addEventListener('click',()=>{auInit();$('start').classList.remove('on');renderMenu();$('menu').classList.add('on');});
 $('play').addEventListener('click',()=>{auInit();if(plyN===3&&!(NET.role==='host'&&NET.peer))return;$('menu').classList.remove('on');newGame();});
 $('next').addEventListener('click',()=>{$('shop').classList.remove('on');startDay();});
 $('again').addEventListener('click',()=>{$('over').classList.remove('on');musicStop();if(G&&G.guest){G=null;chefs=[];netClose();}renderMenu();$('menu').classList.add('on');});
@@ -913,7 +976,7 @@ function moveMark(s,now){
   for(let i=0;i<4;i++){X.save();X.translate(cx,cy);X.rotate(i*Math.PI/2);X.beginPath();X.moveTo(r*.78,0);X.lineTo(r*.42,-r*.26);X.lineTo(r*.42,r*.26);X.closePath();X.fill();X.fillRect(0,-r*.06,r*.45,r*.12);X.restore();}
 }
 function drawChef(chef,now){
-  const u=TS,cx=(chef.dx!=null?chef.dx:chef.cx)*u,cy=(chef.dy!=null?chef.dy:chef.cy)*u,b=Math.abs(Math.sin(chef.walk))*u*.03,fx=chef.fx,fy=chef.fy;
+  const u=TS,rem=chef.dx!=null,cx=(rem?chef.dx:chef.cx)*u,cy=(rem?chef.dy:chef.cy)*u,wk=rem&&chef.dw!=null?chef.dw:chef.walk,b=Math.abs(Math.sin(wk))*u*.03,fx=rem&&chef.dfx!=null?chef.dfx:chef.fx,fy=rem&&chef.dfx!=null?chef.dfy:chef.fy;
   shadow(cx,cy+u*.24,u*.36,u*.13,.25);
   const ang=Math.atan2(fy,fx);
   if(G.two){X.strokeStyle=chef.i?'#2f6db3':'#c63a2a';X.lineWidth=2.5;X.beginPath();X.ellipse(cx,cy+u*.22,u*.36,u*.14,0,0,Math.PI*2);X.stroke();}
@@ -921,7 +984,7 @@ function drawChef(chef,now){
   X.save();X.rotate(ang+Math.PI/2);
   ell(0,u*.02,u*.3,u*.2,0,'#d6d0c3');ell(0,0,u*.29,u*.19,0,'#fbf9f4');
   X.fillStyle=chef.i?(G.L.scarf==='#2f6db3'?'#e0a33a':'#2f6db3'):G.L.scarf;rr(-u*.12,-u*.17,u*.24,u*.07,u*.03);X.fill();
-  const sw=Math.sin(chef.walk*2)*u*.05,hold=!!chef.h;
+  const sw=Math.sin(wk*2)*u*.05,hold=!!chef.h;
   circ(-u*.24,hold?-u*.2:-u*.02+sw,u*.07,'#e2b48c');circ(u*.24,hold?-u*.2:-u*.02-sw,u*.07,'#e2b48c');
   X.restore();
   circ(fx*u*.04,fy*u*.04-u*.02,u*.14,'#e2b48c');
@@ -1004,7 +1067,7 @@ function serverBase(){
 const SERVER_DEFAULT='https://cucina-lampo.onrender.com';
 try{$('srv').value=localStorage.getItem('cl-server')||SERVER_DEFAULT}catch(e){$('srv').value=SERVER_DEFAULT}
 function netSend(o){if(NET.ws&&NET.ws.readyState===1)NET.ws.send(JSON.stringify(o));}
-function netClose(){const w=NET.ws;NET.ws=null;clearInterval(NET.ping);if(w)try{w.close()}catch(e){}NET.role=null;NET.peer=false;NET.code=null;$('codeOut').style.display='none';}
+function netClose(){const w=NET.ws;NET.ws=null;clearInterval(NET.ping);if(w)try{w.close()}catch(e){}NET.role=null;NET.peer=false;NET.code=null;NET.lastL='';rsReset();$('codeOut').style.display='none';}
 function netConnect(first){
   const base=serverBase();
   if(!base)return netStatus('Scrivi prima l\'indirizzo del server');
@@ -1035,13 +1098,14 @@ function onNet(m){
     if(m.t==='pos'||m.t==='use'){const c=chefs[1];
       if(c&&typeof m.x==='number'&&typeof m.y==='number'&&!hits(m.x,m.y)){c.cx=m.x;c.cy=m.y;}
       if(c&&typeof m.fx==='number'){c.fx=m.fx;c.fy=m.fy;}
-      if(c&&m.t==='pos'){c.rm=!!m.m;if(typeof m.w==='number')c.walk=m.w;}
-      if(c)pushSample(c,c.cx,c.cy);
+      if(c&&typeof m.w==='number')c.walk=m.w;
+      if(c&&m.t==='pos')c.rm=!!m.m;
+      if(c&&m.t==='pos')pushSample(1,m.ts,c.cx,c.cy,c.fx,c.fy,c.walk,m.m);
       if(m.t==='use')use(1);}
   }
   else if(NET.role==='guest'){
     if(m.t==='snap')applySnap(m.d);
-    else if(m.t==='cp'){const c=chefs.find(c=>c.i===0);if(c){c.fx=m.fx;c.fy=m.fy;c.walk=m.w;c.hasCp=true;pushSample(c,m.x,m.y);}}
+    else if(m.t==='cp'){pushSample(0,m.ts,m.x,m.y,m.fx,m.fy,m.w,m.m);const c=chefs.find(c=>c.i===0);if(c){c.fx=m.fx;c.fy=m.fy;c.walk=m.w;}}
     else if(m.t==='say'){$('hint').textContent=m.m;$('hint').className='say';toastT=2.6;}
     else if(m.t==='over'){$('osum').innerHTML=m.html;$('wait').classList.remove('on');$('over').classList.add('on');}
   }
@@ -1055,7 +1119,7 @@ function snapshot(){
   NET.full=(NET.full||0)-1;
   if(lk!==NET.lk||NET.full<=0){NET.lk=lk;NET.full=25;d.loc=G.loc;d.dk=G.dk;d.L=S.map(s=>[s.x,s.y,s.type,s.raw||0,s.p||0,s.seat||0]);}
   const rec=G.L.rec;
-  d.g=[G.day,r2(G.t),G.dayLen,G.coins,G.hearts,G.plates,G.running?1:0,G.paused?1:0,G.edit?1:0,r2(G.speed)];
+  d.g=[G.day,r2(G.t),G.dayLen,G.coins,G.hearts,G.plates,G.running?1:0,G.paused?1:0,G.edit?1:0,r2(G.speed),+G.cookMul.toFixed(3),+G.chopMul.toFixed(3)];
   d.s=S.map(s=>{const c=s.cust;return [s.item||0,r2(s.prog),s.state||0,s.n||0,s.dirty?1:0,
     c?[c.st,rec.indexOf(c.dish),r2(c.pat),r2(c.max),c.shirt,c.skin,c.hair,c.style,c.plate||0]:0];});
   d.c=chefs.map(c=>[c.i,r2(c.cx),r2(c.cy),r2(c.fx),r2(c.fy),r2(c.walk),c.h||0,ix(c.work),ix(c.face)]);
@@ -1063,11 +1127,14 @@ function snapshot(){
   d.fl=floats.map(f=>[r2(f.x),r2(f.y),r2(f.t),f.txt]);d.sel=ix(G.sel);
   return d;
 }
+/* se la connessione è intasata non si accodano altri aggiornamenti: meglio saltarne uno che arrivare in ritardo */
+const netBusy=n=>!NET.ws||NET.ws.bufferedAmount>n;
+const nowMs=()=>Math.round(performance.now());
 function hostTick(dt){
   if(!NET.peer||NET.role!=='host')return;
-  NET.snapT-=dt;if(NET.snapT<=0){NET.snapT=.1;netSend({t:'snap',d:snapshot()});}
+  NET.snapT-=dt;if(NET.snapT<=0&&!netBusy(65536)){NET.snapT=.1;netSend({t:'snap',d:snapshot()});}
   NET.cpT=(NET.cpT||0)-dt;const h=chefs[0];
-  if(h&&NET.cpT<=0){NET.cpT=.033;const sg=h.cx.toFixed(3)+','+h.cy.toFixed(3)+','+h.fx.toFixed(2);if(sg!==NET.cpLast||NET.cpIdle<=0){netSend({t:'cp',x:+h.cx.toFixed(3),y:+h.cy.toFixed(3),fx:+h.fx.toFixed(2),fy:+h.fy.toFixed(2),w:+h.walk.toFixed(1)});NET.cpLast=sg;NET.cpIdle=.4;}}
+  if(h&&NET.cpT<=0&&!netBusy(65536)){NET.cpT=.033;const sg=h.cx.toFixed(3)+','+h.cy.toFixed(3)+','+h.fx.toFixed(2)+(h.mv?1:0);if(sg!==NET.cpLast||NET.cpIdle<=0){netSend({t:'cp',ts:nowMs(),x:+h.cx.toFixed(3),y:+h.cy.toFixed(3),fx:+h.fx.toFixed(2),fy:+h.fy.toFixed(2),w:+h.walk.toFixed(1),m:h.mv?1:0});NET.cpLast=sg;NET.cpIdle=.4;}}
   NET.cpIdle=(NET.cpIdle||0)-dt;
 }
 function guestTick(dt){
@@ -1078,49 +1145,103 @@ function guestTick(dt){
   me.tx=me.cx;me.ty=me.cy;me.face=facing(me);
   NET.inT-=dt;
   const sig=me.cx.toFixed(2)+','+me.cy.toFixed(2)+','+(mv?1:0)+','+me.fx.toFixed(1)+','+me.fy.toFixed(1);
-  if(NET.inT<=0||(sig!==NET.lastIn&&NET.posT<=0)){netSend({t:'pos',x:+me.cx.toFixed(3),y:+me.cy.toFixed(3),fx:+me.fx.toFixed(2),fy:+me.fy.toFixed(2),w:+me.walk.toFixed(1),m:mv?1:0});NET.lastIn=sig;NET.inT=.4;NET.posT=.033;}
+  if((NET.inT<=0||(sig!==NET.lastIn&&NET.posT<=0))&&!netBusy(16384)){netSend({t:'pos',ts:nowMs(),x:+me.cx.toFixed(3),y:+me.cy.toFixed(3),fx:+me.fx.toFixed(2),fy:+me.fy.toFixed(2),w:+me.walk.toFixed(1),m:mv?1:0});NET.lastIn=sig;NET.inT=.4;NET.posT=.033;}
   NET.posT=(NET.posT||0)-dt;
+}
+/* l'ospite fa avanzare da solo orologio e barre tra un aggiornamento e l'altro, così non vanno a scatti */
+function guestAdvance(dt){
+  G.t+=dt;
+  for(const s of S){
+    if(s.type==='proc'&&s.item&&s.p!=='board'){
+      if(s.state==='cook')s.prog=Math.min(.99,s.prog+dt/(TIME[s.p]*G.cookMul));
+      else if(s.state==='done')s.prog=Math.min(.99,s.prog+dt/(9*G.D.burn));
+    }
+    if(s.cust&&s.cust.st==='order')s.cust.pat=Math.max(.01,s.cust.pat-dt);
+  }
+  for(const q of G.queue)q.pat=Math.max(.01,q.pat-dt);
+  for(const c of chefs){const s=c.work;if(!s)continue;
+    if(s.type==='proc'&&s.p==='board'&&s.state==='cook')s.prog=Math.min(.99,s.prog+dt/(TIME.board*G.chopMul));
+    else if(s.type==='sink'&&s.n>0)s.prog=Math.min(.99,s.prog+dt/2);}
 }
 function applySnap(d){
   if(d.L){
-    const fresh=!G||!G.guest||G.loc!==d.loc;
+    const fresh=!G||!G.guest||G.loc!==d.loc,lk=JSON.stringify(d.L);
     if(fresh){
-      G={guest:true,online:true,two:true,loc:d.loc,L:LOC[d.loc],dk:d.dk,D:DIFF[d.dk],up:{},queue:[],spawns:[],offers:[],sel:null,speed:3.4,hearts:-1};
+      G={guest:true,online:true,two:true,loc:d.loc,L:LOC[d.loc],dk:d.dk,D:DIFF[d.dk],up:{},queue:[],spawns:[],offers:[],sel:null,speed:3.4,cookMul:1,chopMul:1,hearts:-1};
       for(const id of ['menu','over'])$(id).classList.remove('on');document.body.classList.remove('two','editing');chefs=[];
     }
-    const ot=S.filter(s=>s.type==='table').length;
-    S=d.L.map(a=>mkStation({x:a[0],y:a[1],type:a[2],raw:a[3]||undefined,p:a[4]||undefined,seat:a[5]}));rebuildGrid();
-    if(fresh||S.filter(s=>s.type==='table').length!==ot)makeBg();
+    if(fresh||lk!==NET.lastL){
+      NET.lastL=lk;
+      const ot=S.filter(s=>s.type==='table').length;
+      S=d.L.map(a=>mkStation({x:a[0],y:a[1],type:a[2],raw:a[3]||undefined,p:a[4]||undefined,seat:a[5]}));rebuildGrid();
+      if(fresh||S.filter(s=>s.type==='table').length!==ot)makeBg();
+    }
   }
   if(!G||!G.guest||!d.s||d.s.length!==S.length)return;
-  const oh=G.hearts,g=d.g;
-  Object.assign(G,{day:g[0],t:g[1],dayLen:g[2],coins:g[3],hearts:g[4],plates:g[5],running:!!g[6],paused:!!g[7],edit:!!g[8],speed:g[9]||3.4});
+  const oh=G.hearts,od=G.day,ot=G.t,g=d.g;
+  Object.assign(G,{day:g[0],t:g[1],dayLen:g[2],coins:g[3],hearts:g[4],plates:g[5],running:!!g[6],paused:!!g[7],edit:!!g[8],speed:g[9]||3.4,cookMul:g[10]||1,chopMul:g[11]||1});
+  /* i valori dell'host arrivano un attimo in ritardo: se quelli calcolati qui sono appena più avanti si tengono, così le barre non tornano indietro */
+  const ahead=(mine,host,max)=>mine>host&&mine-host<max;
+  if(od===G.day&&ahead(ot,G.t,.5))G.t=ot;
   const rec=G.L.rec;
-  d.s.forEach((a,i)=>{const s=S[i];s.item=a[0]||null;s.prog=a[1];s.state=a[2]||null;s.n=a[3];s.dirty=!!a[4];
-    const c=a[5];s.cust=c?{st:c[0],dish:rec[c[1]]||rec[0],pat:c[2],max:c[3],shirt:c[4],skin:c[5],hair:c[6],style:c[7],plate:c[8]||null}:null;});
-  G.queue=d.q.map(q=>({pat:q[0],max:q[1],shirt:q[2],skin:q[3],hair:q[4],style:q[5]}));
+  d.s.forEach((a,i)=>{const s=S[i],op=s.prog,ost=s.state,ok=s.item&&s.item.k,on=s.n,oc=s.cust;
+    s.item=a[0]||null;s.prog=a[1];s.state=a[2]||null;s.n=a[3];s.dirty=!!a[4];
+    if(s.state===ost&&(s.item&&s.item.k)===ok&&s.n===on&&ahead(op,s.prog,.15))s.prog=op;
+    const c=a[5];s.cust=c?{st:c[0],dish:rec[c[1]]||rec[0],pat:c[2],max:c[3],shirt:c[4],skin:c[5],hair:c[6],style:c[7],plate:c[8]||null}:null;
+    if(s.cust&&oc&&oc.st===s.cust.st&&oc.dish===s.cust.dish&&oc.max===s.cust.max&&ahead(s.cust.pat,oc.pat,.6))s.cust.pat=oc.pat;});
+  const oq=G.queue;
+  G.queue=d.q.map((q,i)=>{const o=oq[i],p=o&&o.max===q[1]&&ahead(q[0],o.pat,.6)?o.pat:q[0];return {pat:p,max:q[1],shirt:q[2],skin:q[3],hair:q[4],style:q[5]};});
   const prev=chefs;
-  chefs=d.c.map(a=>{const o=prev.find(p=>p.i===a[0]);const mine=a[0]===1&&o;
-    return {buf:o?o.buf:[],hasCp:o?o.hasCp:false,dx:o?o.dx:null,dy:o?o.dy:null,i:a[0],cx:mine?o.cx:o?o.cx:a[1],cy:mine?o.cy:o?o.cy:a[2],tx:mine?o.cx:a[1],ty:mine?o.cy:a[2],fx:mine||(o&&o.hasCp)?o.fx:a[3],fy:mine||(o&&o.hasCp)?o.fy:a[4],walk:mine||(o&&o.hasCp)?o.walk:a[5],h:a[6]||null,work:S[a[7]]||null,face:mine?o.face:S[a[8]]||null};});
+  chefs=d.c.map(a=>{const o=prev.find(p=>p.i===a[0]),mine=a[0]===1&&o,live=!mine&&o&&RS[a[0]].buf&&RS[a[0]].buf.length;
+    const c={i:a[0],cx:o?o.cx:a[1],cy:o?o.cy:a[2],tx:mine?o.cx:a[1],ty:mine?o.cy:a[2],fx:mine||live?o.fx:a[3],fy:mine||live?o.fy:a[4],walk:mine||live?o.walk:a[5],h:a[6]||null,work:S[a[7]]||null,face:mine?o.face:S[a[8]]||null};
+    if(o&&!mine){c.dx=o.dx;c.dy=o.dy;c.dfx=o.dfx;c.dfy=o.dfy;c.dw=o.dw;}
+    return c;});
   const me=chefs.find(c=>c.i===1);
   if(me&&(!G.running||hits(me.cx,me.cy)||Math.hypot(me.cx-d.c[1][1],me.cy-d.c[1][2])>3)){const a=d.c.find(a=>a[0]===1);if(a){me.cx=me.tx=a[1];me.cy=me.ty=a[2];}}
-  floats=d.fl.map(f=>({x:f[0],y:f[1],t:f[2],txt:f[3]}));G.sel=d.sel>=0?S[d.sel]:null;
+  floats=d.fl.map(f=>floats.find(o=>o.x===f[0]&&o.y===f[1]&&o.txt===f[3])||{x:f[0],y:f[1],t:f[2],txt:f[3]});G.sel=d.sel>=0?S[d.sel]:null;
   if(oh!==G.hearts)renderHearts();
   const waiting=!G.running&&!$('over').classList.contains('on');
   $('wait').classList.toggle('on',waiting);
   if(G.paused&&G.running){$('hint').textContent='L\'host ha messo in pausa';$('hint').className='say';toastT=.3;}
 }
 
-/* interpolazione del cuoco dell'altro giocatore: si mostra con 120 ms di ritardo, scorrendo tra le posizioni ricevute */
-const IDELAY=120;
-function pushSample(c,x,y){const b=c.buf||(c.buf=[]);const t=performance.now();if(b.length&&t-b[b.length-1].t<4)b[b.length-1]={t,x,y};else b.push({t,x,y});if(b.length>30)b.shift();}
-function interp(c){
-  const b=c.buf,rt=performance.now()-IDELAY;
-  if(rt<=b[0].t){c.dx=b[0].x;c.dy=b[0].y;return;}
-  const l=b[b.length-1];
-  if(rt>=l.t){c.dx=l.x;c.dy=l.y;return;}
-  for(let k=b.length-2;k>=0;k--)if(b[k].t<=rt){const a=b[k],n=b[k+1],f=(rt-a.t)/Math.max(1,n.t-a.t);c.dx=a.x+(n.x-a.x)*f;c.dy=a.y+(n.y-a.y)*f;return;}
+/* cuoco dell'altro giocatore. Ogni posizione arriva con l'ora in cui è partita e si mostra con un piccolo ritardo
+   che si adatta alla rete. Se un gruppo di posizioni arriva tardi, il cuoco non salta avanti: riparte da dove era
+   e recupera piano piano. Così i messaggi che arrivano a gruppi o in ritardo non lo fanno scattare */
+let RS=[{},{}];
+function rsReset(){RS=[{},{}];}
+function pushSample(i,ts,x,y,fx,fy,w,m){
+  const r=RS[i],now=performance.now();
+  if(typeof ts!=='number')ts=now;if(typeof w!=='number')w=0;m=m===0?0:1;
+  const b=r.buf||(r.buf=[]),win=r.win||(r.win=[]);
+  let l=b[b.length-1];
+  if(l&&ts<=l.ts){if(ts>l.ts-3000)return;b.length=0;win.length=0;l=null;r.rt=null;}   // doppione, oppure l'altro ha ricaricato la pagina
+  if(l){
+    const held=!l.m&&ts-l.ts>60;   // era fermo: resta fermo fino a un attimo prima di ripartire
+    if(held)b.push({ts:ts-34,x:l.x,y:l.y,fx:l.fx,fy:l.fy,w:l.w,m:0});
+    const t0=held?ts-34:l.ts;
+    if(r.rt!=null&&r.rt>t0&&r.rt-t0<1500){r.lag+=r.rt-t0;r.rt=t0;}   // arrivato tardi: si riprende da qui
+  }
+  b.push({ts,x,y,fx,fy,w,m});if(b.length>120)b.splice(0,b.length-120);
+  win.push([now,now-ts]);while(win.length>1&&now-win[0][0]>4000)win.shift();
+  let mn=Infinity;for(const v of win)if(v[1]<mn)mn=v[1];
+  const ex=win.map(v=>v[1]-mn).sort((a,b)=>a-b);
+  r.off=mn;r.target=Math.min(400,Math.max(90,50+(ex[Math.floor(ex.length*.95)]||0)));
 }
+function interp(i,dt){
+  const r=RS[i],b=r.buf;if(!b||!b.length)return null;
+  const want=r.off+r.target;
+  if(r.lag==null||Math.abs(want-r.lag)>1500)r.lag=want;
+  else{const st=dt*100;r.lag+=Math.max(-st,Math.min(st,want-r.lag));}   // il ritardo cambia piano: al massimo il 10% del tempo
+  const rt=r.rt=performance.now()-r.lag,l=b[b.length-1];
+  while(b.length>3&&b[2].ts<rt-500)b.shift();
+  if(rt<=b[0].ts)return b[0];
+  if(rt>=l.ts)return l;
+  let k=b.length-2;while(k>0&&b[k].ts>rt)k--;
+  const a=b[k],n=b[k+1],f=(rt-a.ts)/Math.max(1,n.ts-a.ts);
+  return {x:a.x+(n.x-a.x)*f,y:a.y+(n.y-a.y)*f,fx:f<.5?a.fx:n.fx,fy:f<.5?a.fy:n.fy,w:a.w+(n.w-a.w)*f};
+}
+function showRemote(c,dt){const d=interp(c.i,dt);if(!d)return false;c.dx=d.x;c.dy=d.y;c.dfx=d.fx;c.dfy=d.fy;c.dw=d.w;return true;}
 /* ---------- audio ---------- */
 const AU={ctx:null,mus:null,fx:null,vm:.6,vs:.8,on:false,next:0,step:0,timer:null,nb:null};
 try{const v=JSON.parse(localStorage.getItem('cl-vol')||'null');if(v){AU.vm=+v.m;AU.vs=+v.s;}}catch(e){}
@@ -1206,24 +1327,34 @@ function soundWatch(dt){
 }
 
 renderMenu();
-function drawIcon(u){
-  const g=X.createRadialGradient(u*.42,u*.36,u*.05,u*.5,u*.5,u*.75);g.addColorStop(0,'#2c312b');g.addColorStop(1,'#141613');X.fillStyle=g;X.fillRect(0,0,u,u);
-  X.save();X.translate(u*.5,u*.5);ell(0,u*.2,u*.24,u*.06,0,'rgba(0,0,0,.35)');
-  X.fillStyle='#e9e4d8';rr(-u*.2,u*.02,u*.4,u*.17,u*.03);X.fill();X.fillStyle='#fbf9f4';rr(-u*.2,0,u*.4,u*.15,u*.03);X.fill();
-  for(const [x,y,r] of [[-.15,-.08,.13],[.15,-.08,.13],[0,-.17,.15],[-.06,-.05,.12],[.07,-.05,.12]])circ(x*u,y*u,r*u,'#fbf9f4');
-  circ(-u*.05,-u*.22,u*.05,'rgba(255,255,255,.9)');X.strokeStyle='#ddd7ca';X.lineWidth=u*.006;for(const x of [-.1,0,.1]){X.beginPath();X.moveTo(x*u,u*.02);X.lineTo(x*u,u*.14);X.stroke();}
+/* icona: cappello da chef e lampo. part: 'bg' solo lo sfondo, 'fg' solo cappello e lampo, 'mono' la loro sagoma in bianco
+   (sono i livelli dell'icona adattiva di Android, vedi android/icone.js) */
+function drawIcon(u,part){
+  const mono=part==='mono',W1=mono?'#fff':'#fbf9f4';
+  if(part!=='fg'&&!mono){const g=X.createRadialGradient(u*.42,u*.36,u*.05,u*.5,u*.5,u*.75);g.addColorStop(0,'#2c312b');g.addColorStop(1,'#141613');X.fillStyle=g;X.fillRect(0,0,u,u);}
+  if(part==='bg')return;
+  X.save();X.translate(u*.5,u*.5);if(!mono)ell(0,u*.2,u*.24,u*.06,0,'rgba(0,0,0,.35)');
+  X.fillStyle=mono?W1:'#e9e4d8';rr(-u*.2,u*.02,u*.4,u*.17,u*.03);X.fill();X.fillStyle=W1;rr(-u*.2,0,u*.4,u*.15,u*.03);X.fill();
+  for(const [x,y,r] of [[-.15,-.08,.13],[.15,-.08,.13],[0,-.17,.15],[-.06,-.05,.12],[.07,-.05,.12]])circ(x*u,y*u,r*u,W1);
+  if(!mono){circ(-u*.05,-u*.22,u*.05,'rgba(255,255,255,.9)');X.strokeStyle='#ddd7ca';X.lineWidth=u*.006;for(const x of [-.1,0,.1]){X.beginPath();X.moveTo(x*u,u*.02);X.lineTo(x*u,u*.14);X.stroke();}}
   X.restore();
-  X.save();X.translate(u*.7,u*.66);X.scale(u/487,u/487);X.beginPath();X.moveTo(20,-100);X.lineTo(-45,10);X.lineTo(0,10);X.lineTo(-20,100);X.lineTo(50,-15);X.lineTo(5,-15);X.closePath();
-  X.fillStyle='#e0533f';X.fill();X.lineJoin='round';X.lineWidth=10;X.strokeStyle='#1c1f1b';X.stroke();X.fill();X.restore();
+  X.save();X.translate(u*.7,u*.66);X.scale(u/487,u/487);X.beginPath();X.moveTo(20,-100);X.lineTo(-45,10);X.lineTo(0,10);X.lineTo(-20,100);X.lineTo(50,-15);X.lineTo(5,-15);X.closePath();X.lineJoin='round';
+  if(mono){X.globalCompositeOperation='destination-out';X.lineWidth=18;X.stroke();X.globalCompositeOperation='source-over';X.fillStyle=W1;X.fill();}
+  else{X.fillStyle='#e0533f';X.fill();X.lineWidth=10;X.strokeStyle='#1c1f1b';X.stroke();X.fill();}
+  X.restore();
 }
 if(!SERVER_BUILTIN){try{$('ticon').href=iconCanvas(180,drawIcon).toDataURL('image/png');}catch(e){}}
-if(location.hash.startsWith('#icon')){const n=+location.hash.slice(5)||512;document.body.innerHTML='';document.body.style.cssText='margin:0;padding:0';const c=document.createElement('canvas');c.width=c.height=n;c.style.cssText='display:block;width:'+n+'px;height:'+n+'px';document.body.append(c);X=c.getContext('2d');drawIcon(n);throw 0;}
+{const lg=iconCanvas(128,drawIcon);lg.id='logo';lg.setAttribute('aria-hidden','true');$('logo').replaceWith(lg);}
+if(location.hash.startsWith('#icon')){const m=location.hash.match(/^#icon(bg|fg|mono)?(\d*)/),part=m[1],n=+m[2]||512;document.body.innerHTML='';document.body.style.cssText='margin:0;padding:0;background:transparent';const c=document.createElement('canvas');c.width=c.height=n;c.style.cssText='display:block;width:'+n+'px;height:'+n+'px';document.body.append(c);X=c.getContext('2d');if(part==='fg'||part==='mono'){X.translate(n*.19,n*.19);X.scale(.62,.62);}drawIcon(n,part);throw 0;}
 const ro=new ResizeObserver(resize);ro.observe($('wrap'));resize();
 let last=performance.now();
 function loop(t){
   const dt=Math.min(.05,(t-last)/1000);last=t;
-  if(G&&G.guest){for(const c of chefs)if(c.i!==1){if(c.hasCp&&c.buf.length){interp(c);c.cx=c.dx;c.cy=c.dy;}else{c.cx+=(c.tx-c.cx)*Math.min(1,dt*14);c.cy+=(c.ty-c.cy)*Math.min(1,dt*14);c.dx=c.dy=null;}}guestTick(dt);}
-  else if(G&&G.online){hostTick(dt);const c=chefs[1];if(c&&c.buf&&c.buf.length)interp(c);}
+  if(G&&G.guest){
+    if(G.running&&!G.paused)guestAdvance(dt);
+    for(const c of chefs)if(c.i!==1){if(showRemote(c,dt)){c.cx=c.dx;c.cy=c.dy;}else{c.cx+=(c.tx-c.cx)*Math.min(1,dt*14);c.cy+=(c.ty-c.cy)*Math.min(1,dt*14);c.dx=c.dy=null;}}
+    guestTick(dt);}
+  else if(G&&G.online){hostTick(dt);const c=chefs[1];if(c)showRemote(c,dt);}
   if(G&&G.running&&!G.paused&&!G.guest){update(dt);
     for(const p of parts){p.t-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;}parts=parts.filter(p=>p.t>0);if(parts.length>160)parts.splice(0,parts.length-160);}
   toastT-=dt;floats.forEach(f=>f.t-=dt);

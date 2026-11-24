@@ -1,0 +1,6 @@
+node_modules/
+android/build/
+android/CucinaLampo.apk
+android/*.apk.idsig
+# chiave di firma dell'app: tienila da parte, non va pubblicata
+android/*.keystore
