@@ -197,16 +197,16 @@ const TOPS=new Set(['tomc','mozz','func','cipc']);
 const HOW={pasta:'pasta cruda in pentola',salsa:'pomodoro tagliato, poi in pentola',tomc:'pomodoro sul tagliere',ins:'lattuga sul tagliere',carnec:'carne sulla piastra',pane:'panino dalla cassa',chs:'formaggio dalla cassa',fries:'patata tagliata, poi in friggitrice',cipc:'cipolla sul tagliere',risoc:'riso in pentola',func:'funghi sul tagliere',pescf:'pesce sul tagliere',pescec:'pesce sulla piastra',alga:'alga dalla cassa',mozz:'mozzarella'};
 const LOC={
   trattoria:{name:'Trattoria',d:'Pasta, sughi e insalate',floor:'wood',table:'check',ca:'#f4efe4',cb:'#c63a2a',scarf:'#c63a2a',rec:[
-    ['Pasta in bianco',['pasta'],1],['Insalata',['ins'],2],['Pasta al pomodoro',['pasta','salsa'],3],['Insalata mista',['ins','tomc'],4],['Pasta ai funghi',['pasta','func'],6],['Tagliata con insalata',['carnec','ins'],8],['Pasta funghi e pomodoro',['pasta','salsa','func'],11]]},
+    ['Pasta in bianco',['pasta'],1],['Insalata',['ins'],2],['Pasta al pomodoro',['pasta','salsa'],4],['Insalata mista',['ins','tomc'],5],['Pasta ai funghi',['pasta','func'],7],['Tagliata con insalata',['carnec','ins'],9],['Pasta funghi e pomodoro',['pasta','salsa','func'],13]]},
   burgeria:{name:'Burgeria',d:'Panini, formaggio e patatine',floor:'diner',table:'diner',scarf:'#2f6db3',rec:[
-    ['Hamburger',['pane','carnec'],1],['Cheeseburger',['pane','carnec','chs'],2],['Patatine',['fries'],3],['Burger verde',['pane','carnec','ins'],4],['Burger completo',['pane','carnec','chs','ins','tomc'],6],['Burger alle cipolle',['pane','carnec','cipc','chs'],8],['Insalata con patatine',['ins','fries'],10]]},
+    ['Hamburger',['pane','carnec'],1],['Cheeseburger',['pane','carnec','chs'],2],['Patatine',['fries'],4],['Burger verde',['pane','carnec','ins'],5],['Burger completo',['pane','carnec','chs','ins','tomc'],7],['Burger alle cipolle',['pane','carnec','cipc','chs'],9],['Insalata con patatine',['ins','fries'],11]]},
   pizzeria:{name:'Pizzeria',d:'Impasto, condimenti e forno',floor:'terra',table:'check',ca:'#f4efe4',cb:'#2f7a4a',scarf:'#2f7a4a',rec:[
-    ['Marinara',['pizza','tomc'],1],['Margherita',['pizza','tomc','mozz'],2],['Funghi',['pizza','tomc','mozz','func'],3],['Bianca alle cipolle',['pizza','mozz','cipc'],4],['Insalata',['ins'],5],['Pizza del forno',['pizza','tomc','mozz','func','cipc'],7],['Patatine',['fries'],9]]},
+    ['Marinara',['pizza','tomc'],1],['Margherita',['pizza','tomc','mozz'],2],['Funghi',['pizza','tomc','mozz','func'],4],['Bianca alle cipolle',['pizza','mozz','cipc'],5],['Insalata',['ins'],7],['Pizza del forno',['pizza','tomc','mozz','func','cipc'],9],['Patatine',['fries'],11]]},
   sushi:{name:'Sushi bar',d:'Riso, pesce e alga',floor:'tatami',table:'low',scarf:'#3a3f6b',rec:[
-    ['Nigiri',['risoc','pescf'],1],['Maki',['risoc','pescf','alga'],2],['Onigiri',['risoc','alga'],3],['Sashimi',['pescf'],4],['Pesce alla piastra',['pescec','risoc'],6],['Insalata di alghe',['ins','alga'],8],['Sashimi con insalata',['pescf','ins'],10]]},
+    ['Nigiri',['risoc','pescf'],1],['Maki',['risoc','pescf','alga'],2],['Onigiri',['risoc','alga'],4],['Sashimi',['pescf'],5],['Pesce alla piastra',['pescec','risoc'],7],['Insalata di alghe',['ins','alga'],9],['Sashimi con insalata',['pescf','ins'],11]]},
   ristorante:{name:'Ristorante',d:'Risotti, carne e pesce',floor:'parquet',table:'white',scarf:'#3a3a3a',rec:[
-    ['Risotto in bianco',['risoc'],1],['Risotto ai funghi',['risoc','func'],2],['Bistecca',['carnec'],3],['Bistecca e patatine',['carnec','fries'],4],['Pesce e insalata',['pescec','ins'],6],['Risotto al pomodoro',['risoc','salsa'],8],['Bistecca ai funghi',['carnec','func','ins'],10]]}};
-for(const k in LOC)LOC[k].rec=LOC[k].rec.map(([name,c,day])=>({name,c,day,p:5+c.length*3+(c.includes('pizza')?2:0)}));
+    ['Risotto in bianco',['risoc'],1],['Risotto ai funghi',['risoc','func'],2],['Bistecca',['carnec'],4],['Bistecca e patatine',['carnec','fries'],5],['Pesce e insalata',['pescec','ins'],7],['Risotto al pomodoro',['risoc','salsa'],9],['Bistecca ai funghi',['carnec','func','ins'],11]]}};
+for(const k in LOC)LOC[k].rec=LOC[k].rec.map(([name,c,day])=>({name,c,day,p:1+c.length*2+(c.includes('pizza')?1:0)}));
 const DISHC=new Set();for(const k in LOC)for(const r of LOC[k].rec)for(const c of r.c)if(c!=='pizza')DISHC.add(c);
 const DIFF={
   facile:{name:'Facile',pat:1.35,cust:.75,hearts:4,burn:1.4},
@@ -290,8 +290,8 @@ function placeChef(){
   chefs.forEach((c,i)=>{const b=t[Math.min(i,t.length-1)];c.cx=b[0]+.5;c.cy=b[1]+.5;c.fx=0;c.fy=-1;c.h=null;c.work=null;});
 }
 function startDay(){
-  G.day++;G.t=0;G.dayLen=50+Math.min(G.day,15)*4;G.earn=0;G.dayServed=0;
-  const n=Math.max(3,Math.round((2.5+G.day*1.5)*G.D.cust*(G.two?1.4:1)));G.dayTotal=n;G.spawns=[];
+  G.day++;G.t=0;G.dayLen=55+Math.min(G.day,15)*4;G.earn=0;G.dayServed=0;
+  const n=Math.max(3,Math.round((2.6+G.day*1.2)*G.D.cust*(G.two?1.4:1)));G.dayTotal=n;G.spawns=[];
   for(let i=0;i<n;i++)G.spawns.push(2+i*(G.dayLen-8)/n+Math.random()*3);
   G.queue=[];
   ensureStations();
@@ -365,7 +365,7 @@ function interact(chef,s){
     const c=s.cust;
     if(h&&h.k==='plate'&&c&&c.st==='order'){
       if(match(h,c.dish)){
-        const tip=c.pat/c.max>.5?3:0,pay=c.dish.p+tip;
+        const tip=c.pat/c.max>.5?2:0,pay=c.dish.p+tip;
         G.coins+=pay;G.earn+=pay;G.served++;G.dayServed++;
         c.st='eat';c.t=4;c.plate=h;chef.h=null;
         floats.push({x:s.x+.5,y:s.y,t:1.2,txt:'+'+pay+' €'});
@@ -560,10 +560,10 @@ function freeTable(){return S.find(s=>s.type==='table'&&!s.cust&&!s.dirty)}
 function steam(s,col,n){if(Math.random()<n)parts.push({x:s.x+.35+Math.random()*.3,y:s.y+.35,vx:(Math.random()-.5)*.15,vy:-.35-Math.random()*.2,t:1.2,max:1.2,r:.06+Math.random()*.05,col});}
 function update(dt){
   G.t+=dt;
-  while(G.spawns.length&&G.spawns[0]<=G.t){G.spawns.shift();const m=22*G.patMul*G.D.pat;G.queue.push({pat:m,max:m,shirt:rnd(SHIRTS),skin:rnd(SKIN),hair:rnd(HAIR),style:Math.floor(Math.random()*4)});}
+  while(G.spawns.length&&G.spawns[0]<=G.t){G.spawns.shift();const m=Math.max(28,55-G.day*2.5)*G.patMul*G.D.pat;G.queue.push({pat:m,max:m,shirt:rnd(SHIRTS),skin:rnd(SKIN),hair:rnd(HAIR),style:Math.floor(Math.random()*4)});}
   let ft;
   while(G.queue.length&&(ft=freeTable())){
-    const q=G.queue.shift(),dish=rnd(menu()),mx=(Math.max(24,46-G.day*1.3)+dish.c.length*7)*G.patMul*G.D.pat;
+    const q=G.queue.shift(),dish=rnd(menu()),mx=(Math.max(42,80-G.day*3.5)+dish.c.length*8)*G.patMul*G.D.pat;
     ft.cust={st:'think',t:1.6,dish,pat:mx,max:mx,shirt:q.shirt,skin:q.skin,hair:q.hair,style:q.style};
   }
   for(let i=G.queue.length-1;i>=0;i--){G.queue[i].pat-=dt;if(G.queue[i].pat<=0){G.queue.splice(i,1);loseHeart();if(!G.running)return;}}
