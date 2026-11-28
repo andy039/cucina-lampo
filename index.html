@@ -40,6 +40,9 @@ canvas#cv{touch-action:none;border-radius:14px;display:block;box-shadow:0 10px 3
 .pad::after{content:"";position:absolute;inset:36px;border-radius:50%;border:1px dashed var(--line)}
 .pad i{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:var(--ink);box-shadow:0 2px 0 rgba(0,0,0,.35);z-index:1}
 .use{width:104px;height:104px;border-radius:50%;background:var(--acc);color:#fff;font-size:20px;touch-action:none;box-shadow:0 3px 0 #8e2a1e;flex:none;padding:0}
+.rot{display:none;width:64px;height:64px;border-radius:50%;background:#e0a33a;color:#1c1f1b;box-shadow:0 3px 0 #9a6c1c;flex:none;padding:0;margin-left:auto;margin-right:14px;align-items:center;justify-content:center;touch-action:none}
+.rot:active{transform:translateY(2px);box-shadow:0 1px 0 #9a6c1c}
+body.canrot .rot{display:flex}
 .use:active{transform:translateY(2px);box-shadow:0 1px 0 #8e2a1e}
 .use.b{background:#2f6db3;box-shadow:0 3px 0 #1f4a7d}.use.b:active{box-shadow:0 1px 0 #1f4a7d}
 .pad.b i{background:#9cc0ea}
@@ -110,7 +113,7 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 <div id="wrap"><canvas id="cv"></canvas></div>
 <div id="hint">Pad per muoverti, Usa davanti a una postazione</div>
 <div id="prepbar"><button class="sec" id="toShop">Negozio</button><button class="pri" id="openDay">Apri il giorno 2</button></div>
-<div class="bar" id="ctrl"><div class="pad" id="pad0"><i></i></div><button class="use" id="use0">Usa</button><button class="use b p2" id="use1">Usa</button><div class="pad b p2" id="pad1"><i></i></div></div>
+<div class="bar" id="ctrl"><div class="pad" id="pad0"><i></i></div><button class="rot" id="rot0" aria-label="Ruota il nastro"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v5h-5"/></svg></button><button class="use" id="use0">Usa</button><button class="use b p2" id="use1">Usa</button><div class="pad b p2" id="pad1"><i></i></div></div>
 
 
 <div class="ov on" id="start"><div class="hero">
@@ -184,7 +187,7 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 <script>/*CL_SERVER*/</script>
 <script>
 {
-const W=8,H=11,KR=4,EX=4,EY=10,DX=5,PASS=[[2,4],[3,4]];   // cucina: righe 0-3, sala: righe 4-10. Tra le due un muro sottile con la porta nella colonna DX e due passavivande che sporgono in sala
+const W=8,H=12,KR=5,EX=4,EY=11,DX=5,PASS=[[2,5],[3,5]];   // cucina: righe 0-4, sala: righe 5-11. Tra le due un muro sottile con la porta nella colonna DX e due passavivande che sporgono in sala
 const D4=[[1,0],[-1,0],[0,1],[0,-1]];
 const $=id=>document.getElementById(id);
 const cv=$('cv'),MAINX=cv.getContext('2d');
@@ -222,7 +225,7 @@ const DIFF={
   facile:{name:'Facile',pat:1.35,cust:.75,hearts:4,burn:1.4},
   normale:{name:'Normale',pat:1,cust:1,hearts:3,burn:1},
   difficile:{name:'Difficile',pat:.78,cust:1.3,hearts:2,burn:.75}};
-const TABLE_START=[[1,7],[6,7]],MAX_TABLES=6,MAX_WAIT=2;
+const TABLE_START=[[1,8],[6,8]],MAX_TABLES=6,MAX_WAIT=2;
 const SALA_T=new Set(['table','wait']);
 const SHIRTS=['#3f6e8c','#7a4f8a','#4e7d4a','#b5652d','#5b5f66','#9a3b4a','#2f7f7a','#c28a2c'];
 const SKIN=['#f0cfae','#d9a77e','#a8724f','#7a4b32','#e8bd94'];
@@ -238,15 +241,24 @@ const walk=(x,y)=>inB(x,y)&&!grid[y][x];
 function rebuildGrid(){grid=Array.from({length:H},()=>Array(W).fill(null));for(const s of S)grid[s.y][s.x]=s;}
 /* il muro sottile separa la riga KR-1 (cucina) dalla riga KR (sala), tranne nella colonna della porta */
 const wallBetween=(x,y,nx,ny)=>x===nx&&Math.min(y,ny)===KR-1&&Math.max(y,ny)===KR&&x!==DX;
-function setKitchen(){RES=new Set([DX+','+(KR-1),DX+','+KR]);for(const [x,y] of PASS)RES.add(x+','+(y-1));}
+function setKitchen(){RES=new Set();for(const [x,y] of PASS)RES.add(x+','+(y-1));}   // davanti ai passavivande (lato cucina) resta libero; davanti alla porta si può mettere roba
+/* si parte dall'ingresso (sala) e dalle caselle della cucina davanti ai passavivande: se la porta è bloccata
+   cucina e sala diventano due zone separate, collegate solo dai passavivande */
+function flood(seeds){
+  const seen=new Set(seeds.map(p=>p.join(','))),q=seeds.slice();
+  while(q.length){const [x,y]=q.shift();for(const [dx,dy] of D4){const nx=x+dx,ny=y+dy,k=nx+','+ny;if(walk(nx,ny)&&!wallBetween(x,y,nx,ny)&&!seen.has(k)){seen.add(k);q.push([nx,ny]);}}}
+  return seen;
+}
+const doorOpen=()=>flood([[EX,EY]]).has(DX+','+(KR-1));
 function reach(){
-  const seen=new Set([EX+','+EY]),q=[[EX,EY]];
+  const seen=flood([[EX,EY],...PASS.map(([x,y])=>[x,y-1]).filter(([x,y])=>walk(x,y))]),q=[];
   while(q.length){const [x,y]=q.shift();for(const [dx,dy] of D4){const nx=x+dx,ny=y+dy,k=nx+','+ny;if(walk(nx,ny)&&!wallBetween(x,y,nx,ny)&&!seen.has(k)){seen.add(k);q.push([nx,ny]);}}}
   return {seen,ok:S.every(s=>D4.some(([dx,dy])=>{const nx=s.x+dx,ny=s.y+dy;return seen.has(nx+','+ny)&&(s.fixed||!wallBetween(s.x,s.y,nx,ny));}))};
 }
 /* la disposizione va bene se si arriva a ogni oggetto, ai passavivande dal lato cucina e nessun cuoco resta chiuso o schiacciato */
 function layoutOk(){
   const r=reach();if(!r.ok)return false;
+  if(!G.online&&!doorOpen())return false;   // da solo bisogna poter passare dalla porta per servire
   for(const k of RES){const [x,y]=k.split(',').map(Number);if(inB(x,y)&&!r.seen.has(k))return false;}
   for(const c of chefs){if(hits(c.cx,c.cy)||!r.seen.has(Math.floor(c.cx)+','+Math.floor(c.cy)))return false;}
   return true;
@@ -258,7 +270,7 @@ function freeCell(t,x,y){
 }
 function prefCells(t){
   const L=[];
-  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(freeCell(t,x,y)){
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(freeCell(t,x,y)&&!(x===DX&&(y===KR-1||y===KR))){   // il gioco da solo non blocca mai la porta
     const side=x===0||x===W-1;
     L.push([x,y,salaType(t)?y:t==='counter'?(KR-1-y)*10+Math.abs(x-3.5):(y===0?0:side?1:3)*10+y+Math.abs(x-3.5)*.1]);
   }
@@ -320,7 +332,8 @@ function placeChef(){
   const {seen}=reach();const t=[];
   for(const k of seen){const [x,y]=k.split(',').map(Number);t.push([x,y,y*10+Math.abs(x-4.2)]);}
   t.sort((a,b)=>a[2]-b[2]);
-  chefs.forEach((c,i)=>{const b=t[Math.min(i,t.length-1)];c.cx=b[0]+.5;c.cy=b[1]+.5;c.fx=0;c.fy=-1;c.h=null;c.work=null;});
+  const sala=doorOpen()?null:t.filter(p=>p[1]>=KR).sort((a,b)=>a[1]-b[1]||Math.abs(a[0]-2.5)-Math.abs(b[0]-2.5));   // porta chiusa: il secondo cuoco parte in sala
+  chefs.forEach((c,i)=>{const b=i===1&&sala&&sala.length?sala[0]:t[Math.min(i,t.length-1)];c.cx=b[0]+.5;c.cy=b[1]+.5;c.fx=0;c.fy=-1;c.h=null;c.work=null;});
 }
 function startDay(){
   G.day++;G.t=0;G.dayLen=55+Math.min(G.day,15)*4;G.earn=0;G.dayServed=0;
@@ -462,8 +475,17 @@ const PADS=[0,1].map(i=>{
   return P;
 });
 function padReset(){PADS.forEach(p=>p.reset());}
+/* ruota di un quarto di giro il nastro che hai davanti */
+function rotate(i){
+  if(G&&G.guest){netSend({t:'rot'});return;}
+  const c=chefs[i];if(!c||!G||G.paused||!(G.running||G.prep)||c.carry)return;
+  const s=c.face;if(!s||s.type!=='belt')return;
+  s.dir=((s.dir||0)+1)%4;s.prog=0;sfx('ui');if(G.online)NET.snapT=0;
+}
+$('rot0').addEventListener('pointerdown',e=>{e.preventDefault();rotate(0);});
 addEventListener('keydown',e=>{keys[e.code]=true;
   if(e.code==='Space'||e.code==='KeyE'){e.preventDefault();use(0);}
+  if(e.code==='KeyR'){e.preventDefault();rotate(0);}
   if(e.code==='Enter'||e.code==='ShiftRight'){e.preventDefault();use(G&&G.two?1:0);}});
 addEventListener('keyup',e=>{keys[e.code]=false;});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false;padReset();});
@@ -505,8 +527,14 @@ function takeFrom(s){
   if(s.type==='plates'){G.plates--;return {k:'plate',c:[]};}
   const it=s.item;s.item=null;s.prog=0;s.state=null;s.auto=false;return it;
 }
+const behind=s=>{const [dx,dy]=DIRS[s.dir||0],b=stAt(s.x-dx,s.y-dy);return b&&(b.fixed||s.fixed||!wallBetween(s.x,s.y,b.x,b.y))?b:null;};
 function automate(dt){
   for(const s of S){
+    // nastro vuoto: prende da quello che ha dietro (casse, banconi, cotture finite, piatti puliti); un lavello lava da solo e ci mette il piatto
+    if(s.type==='belt'&&!s.item){const b=behind(s);
+      if(b&&b.type==='sink'){if(b.n>0){b.prog+=dt/2;if(b.prog>=1){b.n--;b.prog=0;s.item={k:'plate',c:[]};s.prog=0;}}}
+      else if(b&&b.type!=='belt'&&b.type!=='arm'&&b.type!=='table'){const it=peek(b,false);if(it&&(b.type!=='crate'||accepts(stAt(s.x+DIRS[s.dir||0][0],s.y+DIRS[s.dir||0][1]),it))){s.item=takeFrom(b);s.prog=0;}}
+      continue;}
     if(s.type==='belt'&&s.item){
       s.prog=Math.min(1,s.prog+dt/BELT_T);
       if(s.prog>=1){const [dx,dy]=DIRS[s.dir||0],t=stAt(s.x+dx,s.y+dy);
@@ -532,8 +560,8 @@ function dropCheck(c){
   if(grid[y][x])return {x,y,why:'Lì c\'è già qualcosa'};
   if(RES.has(x+','+y))return {x,y,why:'Lascia libero il passaggio davanti a porta e passavivande'};
   if(salaType(s.type)?!(y>=KR&&y<EY):y>=KR)return {x,y,why:salaType(s.type)?'Questo va in sala, lontano dall\'ingresso':'Questo va in cucina'};
-  const ox=s.x,oy=s.y;s.x=x;s.y=y;S.push(s);rebuildGrid();const ok=layoutOk();S.pop();rebuildGrid();s.x=ox;s.y=oy;
-  return ok?{x,y,ok:true}:{x,y,why:'Così qualcosa resta irraggiungibile'};
+  const ox=s.x,oy=s.y;s.x=x;s.y=y;S.push(s);rebuildGrid();const ok=layoutOk(),door=doorOpen();S.pop();rebuildGrid();s.x=ox;s.y=oy;
+  return ok?{x,y,ok:true}:{x,y,why:!door&&!G.online?'Da solo devi poter passare dalla porta per servire':'Così qualcosa resta irraggiungibile'};
 }
 function giveNext(){const h=chefs[0];if(h&&!h.carry&&G.give.length){h.carry=G.give.shift();h.h=null;}}
 function prepAct(c){
@@ -1246,7 +1274,8 @@ function draw(){
 }
 
 function hud(){
-  if(!G)return;
+  if(!G){document.body.classList.remove('canrot');return;}
+  {const me=chefs.find(c=>c.i===(G.guest?1:0));document.body.classList.toggle('canrot',!!(me&&!me.carry&&me.face&&me.face.type==='belt'&&(G.running||G.prep)));}
   $('day').textContent='Giorno '+G.day;
   $('clock').style.width=(G.prep?100:Math.min(100,G.t/G.dayLen*100))+'%';
   $('coins').textContent=G.coins+' €';
@@ -1316,6 +1345,7 @@ function onNet(m){
       if(c&&m.t==='pos')c.rm=!!m.m;
       if(c&&m.t==='pos')pushSample(1,m.ts,c.cx,c.cy,c.fx,c.fy,c.walk,m.m);
       if(m.t==='use')use(1);}
+    else if(m.t==='rot')rotate(1);
   }
   else if(NET.role==='guest'){
     if(m.t==='snap')applySnap(m.d);
