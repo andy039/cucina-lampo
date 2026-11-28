@@ -22,9 +22,11 @@
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 Rubik,system-ui,sans-serif;display:flex;flex-direction:column;height:100dvh;overflow:hidden;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);touch-action:manipulation}
 header{display:flex;align-items:center;gap:8px;padding:8px 10px 6px 14px;flex:none}
-.day{font-weight:500;white-space:nowrap;font-size:15px}
-.clock{flex:1;height:6px;background:var(--line);border-radius:3px;overflow:hidden;min-width:28px}
-.clock i{display:block;height:100%;width:0;background:var(--ink);transition:width .2s linear}
+.day{font-weight:500;white-space:nowrap;font-size:15px;flex:1}
+.timer{flex:none;display:flex;align-items:center;gap:8px;padding:0 14px 8px;color:var(--mut)}
+.timer svg{flex:none}
+.clock{flex:1;height:10px;background:#3a3e38;border-radius:5px;overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.35)}
+.clock i{display:block;height:100%;width:0;background:var(--acc);border-radius:5px;transition:width .2s linear}
 .coins{font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:15px}
 .hearts{display:flex;gap:1px;color:var(--acc)}.hearts .off{color:var(--line)}
 .mbtn{min-height:40px;height:40px;padding:0 10px;background:var(--panel);color:var(--ink);border:1px solid var(--line);display:flex;align-items:center;gap:6px;font-size:15px;position:relative}
@@ -60,7 +62,8 @@ body.two .use{width:66px;height:66px;font-size:16px}
 .btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}.btns button{margin:0}
 #editbar{display:none;justify-content:center;gap:16px}
 #editbar p{margin:0;font-size:14px;max-width:210px}
-body.editing #ctrl{display:none}body.editing #editbar{display:flex}
+#prepbar{display:none;flex:none;gap:8px;padding:0 16px 8px}#prepbar button{flex:1;margin:0;min-height:44px}
+body.prep #prepbar{display:flex}
 .ov{position:fixed;inset:0;background:rgba(18,20,17,.9);display:none;padding:calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));z-index:5;overflow:auto}
 .ov.on{display:flex}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;max-width:440px;width:100%;margin:auto}
@@ -98,16 +101,17 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 </style></head><body>
 <header>
   <div class="day" id="day">Giorno 1</div>
-  <div class="clock"><i id="clock"></i></div>
   <div class="coins" id="coins">0 €</div>
   <div class="hearts" id="hearts"></div>
   <button class="mbtn" id="bookBtn" aria-label="Ricette del menu"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M9 8h7M9 12h5"/></svg>Menu</button>
   <button class="mbtn ic" id="setBtn" aria-label="Impostazioni"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
 </header>
+<div class="timer" aria-label="Tempo della giornata"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9.5 2.5h5"/></svg><div class="clock"><i id="clock"></i></div></div>
 <div id="wrap"><canvas id="cv"></canvas></div>
 <div id="hint">Pad per muoverti, Usa davanti a una postazione</div>
+<div id="prepbar"><button class="sec" id="toShop">Negozio</button><button class="pri" id="openDay">Apri il giorno 2</button></div>
 <div class="bar" id="ctrl"><div class="pad" id="pad0"><i></i></div><button class="use" id="use0">Usa</button><button class="use b p2" id="use1">Usa</button><div class="pad b p2" id="pad1"><i></i></div></div>
-<div class="bar" id="editbar"><p>Trascina col dito gli oggetti della cucina dove vuoi</p><button class="pri" id="done" style="width:auto;margin:0">Fatto</button></div>
+
 
 <div class="ov on" id="start"><div class="hero">
   <canvas id="logo" aria-hidden="true"></canvas>
@@ -143,7 +147,7 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
   <button class="pri" id="bookClose">Torna in cucina</button>
 </div></div>
 
-<div class="ov" id="wait"><div class="card"><h2 id="waitT">L'host sta preparando il prossimo giorno</h2><p id="waitP">Sceglie i miglioramenti e sistema la cucina. Si riparte appena apre il locale.</p></div></div>
+<div class="ov" id="wait"><div class="card"><h2 id="waitT">Aspetta l'host</h2><p id="waitP">Si riparte appena apre il locale.</p></div></div>
 
 <div class="ov" id="settings"><div class="card">
   <div id="setMain"><h2>Impostazioni</h2><p id="setP">Il gioco è in pausa.</p>
@@ -159,10 +163,16 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 <div class="ov" id="shop"><div class="card">
   <h2 id="shopT">Giorno 1 chiuso</h2>
   <div id="sum"></div>
-  <p>Investi l'incasso prima di riaprire</p>
+  <p>Investi l'incasso prima di riaprire. Gli oggetti comprati finiscono in braccio al cuoco: li posi tu dove vuoi.</p>
   <div id="offers"></div>
   <button class="sec" id="edit">Sistema la cucina</button>
   <button class="pri" id="next">Apri il giorno 2</button>
+</div></div>
+
+<div class="ov" id="pick"><div class="card">
+  <h2>Scegli per domani</h2>
+  <p>Ogni due giorni: una ricetta nuova nel menu, oppure un imprevisto da sopportare al suo posto.</p>
+  <div id="picks"></div>
 </div></div>
 
 <div class="ov" id="over"><div class="card">
@@ -174,7 +184,7 @@ button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 <script>/*CL_SERVER*/</script>
 <script>
 {
-const W=8,H=11,KR=4,EX=4,EY=10;
+const W=8,H=11,KR=4,EX=4,EY=10,DX=5,PASS=[[2,4],[3,4]];   // cucina: righe 0-3, sala: righe 4-10. Tra le due un muro sottile con la porta nella colonna DX e due passavivande che sporgono in sala
 const D4=[[1,0],[-1,0],[0,1],[0,-1]];
 const $=id=>document.getElementById(id);
 const cv=$('cv'),MAINX=cv.getContext('2d');
@@ -197,52 +207,76 @@ const TOPS=new Set(['tomc','mozz','func','cipc']);
 const HOW={pasta:'pasta cruda in pentola',salsa:'pomodoro tagliato, poi in pentola',tomc:'pomodoro sul tagliere',ins:'lattuga sul tagliere',carnec:'carne sulla piastra',pane:'panino dalla cassa',chs:'formaggio dalla cassa',fries:'patata tagliata, poi in friggitrice',cipc:'cipolla sul tagliere',risoc:'riso in pentola',func:'funghi sul tagliere',pescf:'pesce sul tagliere',pescec:'pesce sulla piastra',alga:'alga dalla cassa',mozz:'mozzarella'};
 const LOC={
   trattoria:{name:'Trattoria',d:'Pasta, sughi e insalate',floor:'wood',table:'check',ca:'#f4efe4',cb:'#c63a2a',scarf:'#c63a2a',rec:[
-    ['Pasta in bianco',['pasta'],1],['Insalata',['ins'],2],['Pasta al pomodoro',['pasta','salsa'],3],['Insalata mista',['ins','tomc'],4],['Pasta ai funghi',['pasta','func'],6],['Tagliata con insalata',['carnec','ins'],8],['Pasta funghi e pomodoro',['pasta','salsa','func'],11]]},
+    ['Pasta in bianco',['pasta'],1],['Insalata',['ins'],2],['Pasta al pomodoro',['pasta','salsa'],4],['Insalata mista',['ins','tomc'],5],['Pasta ai funghi',['pasta','func'],7],['Tagliata con insalata',['carnec','ins'],9],['Pasta funghi e pomodoro',['pasta','salsa','func'],13]]},
   burgeria:{name:'Burgeria',d:'Panini, formaggio e patatine',floor:'diner',table:'diner',scarf:'#2f6db3',rec:[
-    ['Hamburger',['pane','carnec'],1],['Cheeseburger',['pane','carnec','chs'],2],['Patatine',['fries'],3],['Burger verde',['pane','carnec','ins'],4],['Burger completo',['pane','carnec','chs','ins','tomc'],6],['Burger alle cipolle',['pane','carnec','cipc','chs'],8],['Insalata con patatine',['ins','fries'],10]]},
+    ['Hamburger',['pane','carnec'],1],['Cheeseburger',['pane','carnec','chs'],2],['Patatine',['fries'],4],['Burger verde',['pane','carnec','ins'],5],['Burger completo',['pane','carnec','chs','ins','tomc'],7],['Burger alle cipolle',['pane','carnec','cipc','chs'],9],['Insalata con patatine',['ins','fries'],11]]},
   pizzeria:{name:'Pizzeria',d:'Impasto, condimenti e forno',floor:'terra',table:'check',ca:'#f4efe4',cb:'#2f7a4a',scarf:'#2f7a4a',rec:[
-    ['Marinara',['pizza','tomc'],1],['Margherita',['pizza','tomc','mozz'],2],['Funghi',['pizza','tomc','mozz','func'],3],['Bianca alle cipolle',['pizza','mozz','cipc'],4],['Insalata',['ins'],5],['Pizza del forno',['pizza','tomc','mozz','func','cipc'],7],['Patatine',['fries'],9]]},
+    ['Marinara',['pizza','tomc'],1],['Margherita',['pizza','tomc','mozz'],2],['Funghi',['pizza','tomc','mozz','func'],4],['Bianca alle cipolle',['pizza','mozz','cipc'],5],['Insalata',['ins'],7],['Pizza del forno',['pizza','tomc','mozz','func','cipc'],9],['Patatine',['fries'],11]]},
   sushi:{name:'Sushi bar',d:'Riso, pesce e alga',floor:'tatami',table:'low',scarf:'#3a3f6b',rec:[
-    ['Nigiri',['risoc','pescf'],1],['Maki',['risoc','pescf','alga'],2],['Onigiri',['risoc','alga'],3],['Sashimi',['pescf'],4],['Pesce alla piastra',['pescec','risoc'],6],['Insalata di alghe',['ins','alga'],8],['Sashimi con insalata',['pescf','ins'],10]]},
+    ['Nigiri',['risoc','pescf'],1],['Maki',['risoc','pescf','alga'],2],['Onigiri',['risoc','alga'],4],['Sashimi',['pescf'],5],['Pesce alla piastra',['pescec','risoc'],7],['Insalata di alghe',['ins','alga'],9],['Sashimi con insalata',['pescf','ins'],11]]},
   ristorante:{name:'Ristorante',d:'Risotti, carne e pesce',floor:'parquet',table:'white',scarf:'#3a3a3a',rec:[
-    ['Risotto in bianco',['risoc'],1],['Risotto ai funghi',['risoc','func'],2],['Bistecca',['carnec'],3],['Bistecca e patatine',['carnec','fries'],4],['Pesce e insalata',['pescec','ins'],6],['Risotto al pomodoro',['risoc','salsa'],8],['Bistecca ai funghi',['carnec','func','ins'],10]]}};
-for(const k in LOC)LOC[k].rec=LOC[k].rec.map(([name,c,day])=>({name,c,day,p:5+c.length*3+(c.includes('pizza')?2:0)}));
+    ['Risotto in bianco',['risoc'],1],['Risotto ai funghi',['risoc','func'],2],['Bistecca',['carnec'],4],['Bistecca e patatine',['carnec','fries'],5],['Pesce e insalata',['pescec','ins'],7],['Risotto al pomodoro',['risoc','salsa'],9],['Bistecca ai funghi',['carnec','func','ins'],11]]}};
+for(const k in LOC)LOC[k].rec=LOC[k].rec.map(([name,c,day])=>({name,c,day,p:1+c.length*2+(c.includes('pizza')?1:0)}));
 const DISHC=new Set();for(const k in LOC)for(const r of LOC[k].rec)for(const c of r.c)if(c!=='pizza')DISHC.add(c);
 const DIFF={
   facile:{name:'Facile',pat:1.35,cust:.75,hearts:4,burn:1.4},
   normale:{name:'Normale',pat:1,cust:1,hearts:3,burn:1},
   difficile:{name:'Difficile',pat:.78,cust:1.3,hearts:2,burn:.75}};
-const TABLE_SPOTS=[[1,5],[4,5],[1,8],[4,8],[6,6],[6,9]];
+const TABLE_START=[[1,7],[6,7]],MAX_TABLES=6,MAX_WAIT=2;
+const SALA_T=new Set(['table','wait']);
 const SHIRTS=['#3f6e8c','#7a4f8a','#4e7d4a','#b5652d','#5b5f66','#9a3b4a','#2f7f7a','#c28a2c'];
 const SKIN=['#f0cfae','#d9a77e','#a8724f','#7a4b32','#e8bd94'];
 const HAIR=['#2b2018','#5a3a22','#b07a3c','#1a1a1a','#8c8c8c','#a8452a'];
 
 /* ---------- stato ---------- */
 let S=[],grid=[],G=null,chefs=[],toastT=0,plyN=1,floats=[],parts=[],locKey='trattoria',diffKey='normale',bg=null;
+let RES=new Set();   // caselle davanti a porta e passavivande: restano sempre libere
 let joys=[{x:0,y:0},{x:0,y:0}];const keys={};
 const inB=(x,y)=>x>=0&&y>=0&&x<W&&y<H;
 const stAt=(x,y)=>inB(x,y)?grid[y][x]:null;
 const walk=(x,y)=>inB(x,y)&&!grid[y][x];
 function rebuildGrid(){grid=Array.from({length:H},()=>Array(W).fill(null));for(const s of S)grid[s.y][s.x]=s;}
+/* il muro sottile separa la riga KR-1 (cucina) dalla riga KR (sala), tranne nella colonna della porta */
+const wallBetween=(x,y,nx,ny)=>x===nx&&Math.min(y,ny)===KR-1&&Math.max(y,ny)===KR&&x!==DX;
+function setKitchen(){RES=new Set([DX+','+(KR-1),DX+','+KR]);for(const [x,y] of PASS)RES.add(x+','+(y-1));}
 function reach(){
   const seen=new Set([EX+','+EY]),q=[[EX,EY]];
-  while(q.length){const [x,y]=q.shift();for(const [dx,dy] of D4){const nx=x+dx,ny=y+dy,k=nx+','+ny;if(walk(nx,ny)&&!seen.has(k)){seen.add(k);q.push([nx,ny]);}}}
-  return {seen,ok:S.every(s=>D4.some(([dx,dy])=>seen.has((s.x+dx)+','+(s.y+dy))))};
+  while(q.length){const [x,y]=q.shift();for(const [dx,dy] of D4){const nx=x+dx,ny=y+dy,k=nx+','+ny;if(walk(nx,ny)&&!wallBetween(x,y,nx,ny)&&!seen.has(k)){seen.add(k);q.push([nx,ny]);}}}
+  return {seen,ok:S.every(s=>D4.some(([dx,dy])=>{const nx=s.x+dx,ny=s.y+dy;return seen.has(nx+','+ny)&&(s.fixed||!wallBetween(s.x,s.y,nx,ny));}))};
 }
-const PREF=[];for(let x=0;x<W;x++)PREF.push([x,0]);PREF.push([0,1],[0,2],[7,1],[7,2]);for(let y=1;y<3;y++)for(let x=1;x<7;x++)PREF.push([x,y]);
+/* la disposizione va bene se si arriva a ogni oggetto, ai passavivande dal lato cucina e nessun cuoco resta chiuso o schiacciato */
+function layoutOk(){
+  const r=reach();if(!r.ok)return false;
+  for(const k of RES){const [x,y]=k.split(',').map(Number);if(inB(x,y)&&!r.seen.has(k))return false;}
+  for(const c of chefs){if(hits(c.cx,c.cy)||!r.seen.has(Math.floor(c.cx)+','+Math.floor(c.cy)))return false;}
+  return true;
+}
+const salaType=t=>SALA_T.has(t);
+function freeCell(t,x,y){
+  if(!inB(x,y)||grid[y][x]||RES.has(x+','+y))return false;
+  return salaType(t)?y>=KR&&y<EY:y<KR;
+}
+function prefCells(t){
+  const L=[];
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(freeCell(t,x,y)){
+    const side=x===0||x===W-1;
+    L.push([x,y,salaType(t)?y:t==='counter'?(KR-1-y)*10+Math.abs(x-3.5):(y===0?0:side?1:3)*10+y+Math.abs(x-3.5)*.1]);
+  }
+  return L.sort((a,b)=>a[2]-b[2]);
+}
 function mkStation(o){return Object.assign({item:null,prog:0,state:null,n:0,cust:null,dirty:false},o);}
 function addStation(o,at){
-  const list=at?[at]:PREF;
-  for(const [x,y] of list){
-    if(!walk(x,y))continue;
+  for(const [x,y] of at?[at]:prefCells(o.type)){
+    if(!freeCell(o.type,x,y))continue;
     const s=mkStation(Object.assign({x,y},o));S.push(s);rebuildGrid();
-    if(reach().ok)return s;
+    if(layoutOk())return s;
     S.pop();rebuildGrid();
   }
   return null;
 }
 function menuAll(){return LOC[G.loc].rec}
-function menu(){return menuAll().filter(r=>r.day<=G.day)}
+const menuAll0=k=>LOC[k].rec;
+function menu(){return menuAll().slice(0,G.rec||1)}
 function needs(k,out){
   if(ING[k]){out.add('crate:'+k);return;}
   if(k==='pizza'){out.add('proc:oven');out.add('crate:impasto');return;}
@@ -256,7 +290,6 @@ function ensureStations(){
     if(t==='proc'&&!S.some(s=>s.type==='proc'&&s.p===v))addStation({type:'proc',p:v});
   }
 }
-function addTable(){const n=S.filter(s=>s.type==='table').length;const sp=TABLE_SPOTS[n];return sp?addStation({type:'table',seat:Math.floor(Math.random()*4)},sp):null;}
 
 function unlockSay(t){if(G&&G.online&&!G.guest&&G.sayTo===1){netSend({t:'say',m:t});return;}if(G&&G.inUse)sfx('bad');$('hint').textContent=t;$('hint').className='say';toastT=2.6;}
 const say=unlockSay;
@@ -274,12 +307,12 @@ const mk=k=>k==='impasto'?{k,c:[]}:{k};
 
 function newGame(){
   const D=DIFF[diffKey];
-  G={two:plyN>=2,online:plyN===3,loc:locKey,L:LOC[locKey],dk:diffKey,D,day:0,coins:0,hearts:D.hearts,up:{},plates:4,maxPlates:4,speed:3.4,patMul:1,cookMul:1,chopMul:1,served:0,running:false,paused:false,edit:false,sel:null,face:null,counters:0};
-  S=[];rebuildGrid();
-  for(const x of [0,1,2,5,6,7])addStation({type:'counter'},[x,3]);
-  addStation({type:'plates'},[7,0]);addStation({type:'sink'},[6,0]);addStation({type:'bin'},[7,1]);
-  addTable();addTable();
-  chefs=[];for(let i=0;i<(G.two?2:1);i++)chefs.push({i,cx:4.5,cy:1.5,h:null,work:null,fx:0,fy:-1,walk:0,face:null});
+  G={two:plyN>=2,online:plyN===3,loc:locKey,L:LOC[locKey],dk:diffKey,D,day:0,coins:0,hearts:D.hearts,up:{},plates:4,maxPlates:4,speed:3.4,patMul:1,cookMul:1,chopMul:1,served:0,running:false,paused:false,prep:false,give:[],face:null,counters:0,rec:1,custMul:1,rent:0,priceMinus:0,noTip:false,mal:[],newRec:menuAll0(locKey)[0].name};
+  setKitchen();S=PASS.map(([x,y])=>mkStation({type:'counter',x,y,fixed:true}));chefs=[];rebuildGrid();
+  for(const t of ['plates','sink','bin','counter','counter'])addStation({type:t});
+  for(const sp of TABLE_START)addStation({type:'table',seat:Math.floor(Math.random()*4)},sp);
+  ensureStations();
+  for(let i=0;i<(G.two?2:1);i++)chefs.push({i,cx:4.5,cy:1.5,h:null,work:null,fx:0,fy:-1,walk:0,face:null,carry:null});
   document.body.classList.toggle('two',G.two&&!G.online);
   renderHearts();makeBg();startDay();
 }
@@ -290,16 +323,16 @@ function placeChef(){
   chefs.forEach((c,i)=>{const b=t[Math.min(i,t.length-1)];c.cx=b[0]+.5;c.cy=b[1]+.5;c.fx=0;c.fy=-1;c.h=null;c.work=null;});
 }
 function startDay(){
-  G.day++;G.t=0;G.dayLen=50+Math.min(G.day,15)*4;G.earn=0;G.dayServed=0;
-  const n=Math.max(3,Math.round((2.5+G.day*1.5)*G.D.cust*(G.two?1.4:1)));G.dayTotal=n;G.spawns=[];
+  G.day++;G.t=0;G.dayLen=55+Math.min(G.day,15)*4;G.earn=0;G.dayServed=0;
+  const n=Math.max(3,Math.round((2.6+G.day*1.2)*G.D.cust*G.custMul*(G.two?1.4:1)));G.dayTotal=n;G.spawns=[];
   for(let i=0;i<n;i++)G.spawns.push(2+i*(G.dayLen-8)/n+Math.random()*3);
-  G.queue=[];
+  G.queue=[];G.prep=false;
   ensureStations();
   S.forEach(s=>{s.item=null;s.prog=0;s.state=null;s.n=0;s.cust=null;s.dirty=false;});
   G.plates=G.maxPlates;placeChef();parts=[];
   G.running=true;
-  const nw=menuAll().filter(r=>r.day===G.day);
-  if(nw.length){say((G.day===1?'In menu: ':'Nuovo in menu: ')+nw.map(r=>r.name).join(', ')+' · guarda Menu');$('bookBtn').classList.add('new');}
+  if(G.rent){const r=Math.min(G.coins,G.rent);G.coins-=r;floats.push({x:EX+.5,y:EY,t:1.6,txt:'−'+r+' € affitto'});}
+  if(G.newRec){say((G.day===1?'In menu: ':'Nuovo in menu: ')+G.newRec+' · guarda Menu');$('bookBtn').classList.add('new');G.newRec=null;}
   else say('Giorno '+G.day+': più clienti di ieri');
 }
 const fits=nc=>menu().some(r=>nc.every(k=>r.c.includes(k)));
@@ -332,8 +365,10 @@ function interact(chef,s){
     else if(h.k==='plate'&&!h.c.length){G.plates++;chef.h=null;}
     else if(h.k!=='plate'&&G.plates>0){const p={k:'plate',c:[]};if(addTo(p,h)){G.plates--;chef.h=p;}else say('Questo non si serve così');}
     else say('Hai già le mani occupate');break;
-  case 'counter':
-    if(!s.item&&h){s.item=h;chef.h=null;}
+  case 'arm':
+    if(!h&&s.item){chef.h=s.item;s.item=null;}else say('Il braccio lavora da solo: prende da 1 e posa su 2');break;
+  case 'counter':case 'belt':
+    if(!s.item&&h){s.item=h;chef.h=null;s.prog=0;}
     else if(s.item&&!h){chef.h=s.item;s.item=null;}
     else if(s.item&&h){if(merge(h,s.item))s.item=null;else if(merge(s.item,h))chef.h=null;else say('Queste due cose non vanno insieme');}
     break;
@@ -342,7 +377,7 @@ function interact(chef,s){
       if(!h)return say(PN[s.p]+' vuoto');
       if(!RULES[s.p][h.k])return say('Questo non va '+PIN[s.p]);
       if(h.k==='impasto'&&!h.c.length)return say('Prima metti i condimenti sull\'impasto');
-      s.item=h;chef.h=null;s.prog=0;s.state='cook';if(s.p==='board')chef.work=s;
+      s.item=h;chef.h=null;s.prog=0;s.state='cook';s.auto=false;if(s.p==='board')chef.work=s;
     }else if(s.state==='cook'){
       if(!h){if(s.p==='board')chef.work=s;else{chef.h=s.item;s.item=null;s.prog=0;s.state=null;}}
       else say(s.p==='board'?'Posa quello che hai e finisci di tagliare':'Sta ancora cuocendo');
@@ -355,6 +390,7 @@ function interact(chef,s){
   case 'sink':
     if(h&&h.k==='dirty'){s.n++;chef.h=null;chef.work=s;}
     else if(!h&&s.n>0)chef.work=s;
+    else if(h&&s.n>0)say('Mani libere per lavare: posa prima quello che hai');
     else if(h)say('Al lavello solo piatti sporchi');else say('Niente da lavare');break;
   case 'bin':
     if(!h)break;
@@ -365,7 +401,7 @@ function interact(chef,s){
     const c=s.cust;
     if(h&&h.k==='plate'&&c&&c.st==='order'){
       if(match(h,c.dish)){
-        const tip=c.pat/c.max>.5?3:0,pay=c.dish.p+tip;
+        const tip=!G.noTip&&c.pat/c.max>.5?2:0,pay=Math.max(1,c.dish.p-G.priceMinus)+tip;
         G.coins+=pay;G.earn+=pay;G.served++;G.dayServed++;
         c.st='eat';c.t=4;c.plate=h;chef.h=null;
         floats.push({x:s.x+.5,y:s.y,t:1.2,txt:'+'+pay+' €'});
@@ -380,7 +416,7 @@ function interact(chef,s){
 
 /* ---------- movimento ---------- */
 const R=.3;
-function hits(cx,cy){for(const ox of [-R,R])for(const oy of [-R,R])if(!walk(Math.floor(cx+ox),Math.floor(cy+oy)))return true;return false;}
+function hits(cx,cy){for(const ox of [-R,R])for(const oy of [-R,R])if(!walk(Math.floor(cx+ox),Math.floor(cy+oy)))return true;return cy-R<KR&&cy+R>KR&&!(cx-R>=DX&&cx+R<=DX+1);}
 function tryMove(chef,dx,dy,nudge){
   if(dx){
     const nx=chef.cx+dx;
@@ -404,14 +440,14 @@ function input(i){
 function facing(chef){
   const tx=Math.floor(chef.cx),ty=Math.floor(chef.cy);let best=null,bs=-9;
   for(const [dx,dy] of D4){
-    const s=stAt(tx+dx,ty+dy);if(!s)continue;
+    const s=stAt(tx+dx,ty+dy);if(!s||(!s.fixed&&wallBetween(tx,ty,tx+dx,ty+dy)))continue;
     const dot=dx*chef.fx+dy*chef.fy,gap=dx?Math.abs(tx+.5+dx*.5-chef.cx):Math.abs(ty+.5+dy*.5-chef.cy);
     if(dot<-.2&&gap>.3)continue;
     const sc=dot*2-gap;if(sc>bs){bs=sc;best=s;}
   }
   return best;
 }
-function use(i){if(G&&G.guest){const c=chefs.find(c=>c.i===1);netSend(c?{t:'use',ts:Math.round(performance.now()),x:+c.cx.toFixed(3),y:+c.cy.toFixed(3),fx:+c.fx.toFixed(2),fy:+c.fy.toFixed(2),w:+c.walk.toFixed(1)}:{t:'use'});return;}const c=chefs[i];if(c&&G&&G.running&&!G.paused&&!G.edit){c.work=null;G.sayTo=i;G.inUse=i===0;try{interact(c,facing(c));}finally{G.sayTo=0;G.inUse=false;}if(G.online)NET.snapT=0;}}
+function use(i){if(G&&G.guest){const c=chefs.find(c=>c.i===1);netSend(c?{t:'use',ts:Math.round(performance.now()),x:+c.cx.toFixed(3),y:+c.cy.toFixed(3),fx:+c.fx.toFixed(2),fy:+c.fy.toFixed(2),w:+c.walk.toFixed(1)}:{t:'use'});return;}const c=chefs[i];if(c&&G&&(G.running||G.prep)&&!G.paused){c.work=null;G.sayTo=i;G.inUse=i===0;try{if(G.prep)prepAct(c);else interact(c,facing(c));}finally{G.sayTo=0;G.inUse=false;}if(G.online)NET.snapT=0;}}
 
 const PADS=[0,1].map(i=>{
   const el=$('pad'+i),kn=el.querySelector('i'),P={el,kn,id:null};
@@ -433,49 +469,121 @@ addEventListener('keyup',e=>{keys[e.code]=false;});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false;padReset();});
 document.addEventListener('touchmove',e=>{if(e.target.closest&&!e.target.closest('.ov'))e.preventDefault();},{passive:false});
 
-/* ---------- sistema la cucina ---------- */
-let drag=null;
-function tileOf(e){const r=cv.getBoundingClientRect();return {fx:(e.clientX-r.left)/TS,fy:(e.clientY-r.top)/TS};}
-function relocate(s,x,y,keep){
-  const o=stAt(x,y),ox=s.x,oy=s.y;
-  if(o){o.x=ox;o.y=oy;}s.x=x;s.y=y;rebuildGrid();
-  const ok=reach().ok;
-  if(!ok||!keep){s.x=ox;s.y=oy;if(o){o.x=x;o.y=y;}rebuildGrid();}
-  return {ok,o};
+/* ---------- automazione: nastri e bracci meccanici ---------- */
+const DIRS=[[1,0],[0,1],[-1,0],[0,-1]],BELT_T=.7,ARM_T=.55,ARM_RANGE=2;
+const clone=o=>JSON.parse(JSON.stringify(o));
+const dirOf=c=>Math.abs(c.fx)>=Math.abs(c.fy)?(c.fx>=0?0:2):(c.fy>=0?1:3);
+// può ricevere questo oggetto? (senza cambiare niente)
+function accepts(t,it){
+  if(!t||!it)return false;
+  switch(t.type){
+  case 'counter':case 'belt':return !t.item||merge(clone(t.item),clone(it));
+  case 'proc':return !t.item&&!!RULES[t.p][it.k]&&!(it.k==='impasto'&&!it.c.length);
+  case 'bin':return it.k!=='plate'&&it.k!=='dirty';
+  case 'plates':return it.k==='plate'&&!it.c.length;
+  case 'sink':return it.k==='dirty';
+  }
+  return false;
 }
-function canDrop(s,x,y){
-  if(!inB(x,y)||y>=KR||(x===s.x&&y===s.y))return false;
-  return relocate(s,x,y,false).ok;
+function putInto(t,it){
+  if(t.type==='counter'||t.type==='belt'){if(!t.item){t.item=it;t.prog=0;}else merge(t.item,it);}
+  else if(t.type==='proc'){t.item=it;t.state='cook';t.prog=0;t.auto=true;}   // arrivato in automatico: anche il tagliere lavora da solo
+  else if(t.type==='plates')G.plates++;
+  else if(t.type==='sink')t.n++;
 }
-cv.addEventListener('pointerdown',e=>{
-  if(!G||!G.edit||G.guest)return;e.preventDefault();
-  const {fx,fy}=tileOf(e),x=Math.floor(fx),y=Math.floor(fy);
-  if(!inB(x,y))return;
-  if(y>=KR){G.sel=null;return say('In sala non si sposta niente: solo la cucina');}
-  const s=stAt(x,y);
-  if(!s){G.sel=null;return say('Trascina un oggetto della cucina');}
-  G.sel=s;drag={s,id:e.pointerId,px:e.clientX,py:e.clientY,fx,fy,tx:x,ty:y,ok:false,moved:false};
-  try{cv.setPointerCapture(e.pointerId)}catch(_){}
-  say('Trascinalo dove vuoi in cucina');
-});
-cv.addEventListener('pointermove',e=>{
-  if(!drag||e.pointerId!==drag.id)return;
-  const t=tileOf(e);drag.fx=t.fx;drag.fy=t.fy;
-  if(Math.hypot(e.clientX-drag.px,e.clientY-drag.py)>6)drag.moved=true;
-  const tx=Math.floor(t.fx),ty=Math.floor(t.fy);
-  if(tx!==drag.tx||ty!==drag.ty){drag.tx=tx;drag.ty=ty;drag.ok=canDrop(drag.s,tx,ty);}
-});
-cv.addEventListener('pointerup',e=>{
-  if(!drag||e.pointerId!==drag.id)return;
-  const d=drag;drag=null;if(!d.moved)return;
-  if(!inB(d.tx,d.ty)||d.ty>=KR)return say('Gli oggetti restano in cucina');
-  if(d.tx===d.s.x&&d.ty===d.s.y)return;
-  const r=relocate(d.s,d.tx,d.ty,true);
-  say(!r.ok?'Così qualcosa resta irraggiungibile':r.o?'Scambiati di posto':'Spostato');
-});
-cv.addEventListener('pointercancel',()=>{drag=null;});
-$('edit').addEventListener('click',()=>{G.edit=true;G.sel=null;drag=null;$('shop').classList.remove('on');document.body.classList.add('editing');say('Trascina un oggetto della cucina');});
-$('done').addEventListener('click',()=>{G.edit=false;G.sel=null;drag=null;document.body.classList.remove('editing');$('shop').classList.add('on');});
+// cosa si può prendere: da forni e fornelli solo a cottura finita (il bruciato solo per buttarlo)
+function peek(s,toBin){
+  if(!s)return null;
+  if(s.type==='crate')return mk(s.raw);
+  if(s.type==='counter'||s.type==='belt')return s.item;
+  if(s.type==='proc')return s.item&&(s.state==='done'||(s.state==='burnt'&&toBin))?s.item:null;
+  if(s.type==='plates')return G.plates>0?{k:'plate',c:[]}:null;
+  return null;
+}
+function takeFrom(s){
+  if(s.type==='crate')return mk(s.raw);
+  if(s.type==='plates'){G.plates--;return {k:'plate',c:[]};}
+  const it=s.item;s.item=null;s.prog=0;s.state=null;s.auto=false;return it;
+}
+function automate(dt){
+  for(const s of S){
+    if(s.type==='belt'&&s.item){
+      s.prog=Math.min(1,s.prog+dt/BELT_T);
+      if(s.prog>=1){const [dx,dy]=DIRS[s.dir||0],t=stAt(s.x+dx,s.y+dy);
+        if(t&&(t.fixed||!wallBetween(s.x,s.y,t.x,t.y))&&accepts(t,s.item)){const it=s.item;s.item=null;s.prog=0;putInto(t,it);if(t.type==='belt')t.prog=0;}}
+    }else if(s.type==='arm'&&s.src){
+      s.t=(s.t||0)+dt;if(s.t<ARM_T)continue;s.t=0;
+      const src=stAt(s.src[0],s.src[1]),dst=stAt(s.dst[0],s.dst[1]);
+      if(s.item){if(accepts(dst,s.item)){putInto(dst,s.item);s.item=null;}}
+      else if(src&&src!==dst){const it=peek(src,dst&&dst.type==='bin');if(it&&accepts(dst,it))s.item=takeFrom(src);}
+    }
+  }
+}
+
+/* ---------- fine giornata: si spostano gli oggetti portandoli in braccio ---------- */
+const STN={belt:'nastro',arm:'braccio meccanico',counter:'bancone',plates:'pila di piatti',sink:'lavello',bin:'cestino',table:'tavolo',wait:'tavolino d\'attesa'};
+function stName(s){return s.type==='crate'?'cassa: '+ING[s.raw]:s.type==='proc'?PN[s.p].toLowerCase():STN[s.type]}
+const carried=()=>chefs.map(c=>c.carry).filter(Boolean);
+const allStations=()=>S.concat(carried(),G.give||[]);
+function frontCell(c){const tx=Math.floor(c.cx),ty=Math.floor(c.cy);return Math.abs(c.fx)>=Math.abs(c.fy)?[tx+Math.sign(c.fx||1),ty]:[tx,ty+Math.sign(c.fy||1)];}
+function dropCheck(c){
+  const s=c.carry,[x,y]=frontCell(c);
+  if(!inB(x,y)||wallBetween(Math.floor(c.cx),Math.floor(c.cy),x,y))return {x,y,why:'Lì c\'è il muro'};
+  if(grid[y][x])return {x,y,why:'Lì c\'è già qualcosa'};
+  if(RES.has(x+','+y))return {x,y,why:'Lascia libero il passaggio davanti a porta e passavivande'};
+  if(salaType(s.type)?!(y>=KR&&y<EY):y>=KR)return {x,y,why:salaType(s.type)?'Questo va in sala, lontano dall\'ingresso':'Questo va in cucina'};
+  const ox=s.x,oy=s.y;s.x=x;s.y=y;S.push(s);rebuildGrid();const ok=layoutOk();S.pop();rebuildGrid();s.x=ox;s.y=oy;
+  return ok?{x,y,ok:true}:{x,y,why:'Così qualcosa resta irraggiungibile'};
+}
+function giveNext(){const h=chefs[0];if(h&&!h.carry&&G.give.length){h.carry=G.give.shift();h.h=null;}}
+function prepAct(c){
+  if(c.carry&&c.carry.type==='arm'&&armStep(c))return;
+  if(c.carry){
+    const t=dropCheck(c);if(!t.ok)return say(t.why);
+    const s=c.carry;s.x=t.x;s.y=t.y;if(s.type==='belt')s.dir=dirOf(c);
+    S.push(s);rebuildGrid();c.carry=null;c.sel=null;
+    if(salaType(s.type))makeBg();
+    if(c.i===0)giveNext();
+    return;
+  }
+  const s=facing(c);
+  if(!s)return say('Mettiti davanti a un oggetto e premi Usa per prenderlo');
+  if(s.fixed)return say('Il passavivande è nel muro: resta lì');
+  if(c.h)return say('Hai le mani occupate');
+  S.splice(S.indexOf(s),1);rebuildGrid();c.carry=s;c.sel=null;
+  if(s.type==='arm')say('Braccio: guarda la casella da cui deve prendere e premi Usa');
+  if(salaType(s.type))makeBg();
+}
+/* il braccio si piazza in tre passi: casella da cui prende, casella dove posa, poi dove sta lui (al massimo a 2 caselle da entrambe) */
+const isPass=p=>PASS.some(q=>q[0]===p[0]&&q[1]===p[1]);
+function armStep(c){
+  const [x,y]=frontCell(c),sel=c.sel||(c.sel={step:0});
+  if(sel.step<2){
+    if(!inB(x,y)||wallBetween(Math.floor(c.cx),Math.floor(c.cy),x,y)){say('Lì c\'è il muro');return true;}
+    if(sel.step===0){sel.src=[x,y];sel.step=1;say('Ora guarda la casella dove deve posare e premi Usa');return true;}
+    if(x===sel.src[0]&&y===sel.src[1]){say('Scegli una casella diversa da quella da cui prende');return true;}
+    sel.dst=[x,y];sel.step=2;say('Ora mettiti dove vuoi il braccio e premi Usa');return true;
+  }
+  const t=dropCheck(c);if(!t.ok){say(t.why);return true;}
+  const far=p=>Math.max(Math.abs(p[0]-t.x),Math.abs(p[1]-t.y))>ARM_RANGE,side=p=>isPass(p)||(p[1]<KR)===(t.y<KR);
+  if(far(sel.src)||far(sel.dst)){c.sel={step:0};say('Troppo lontano: il braccio arriva a 2 caselle. Ricomincia da dove prende');return true;}
+  if(!side(sel.src)||!side(sel.dst)){c.sel={step:0};say('Il braccio non arriva oltre il muro. Ricomincia da dove prende');return true;}
+  c.carry.src=sel.src;c.carry.dst=sel.dst;c.carry.item=null;
+  return false;   // ora si posa come un oggetto qualsiasi
+}
+function setPrep(shop){
+  document.body.classList.toggle('prep',!!(G&&G.prep&&!G.guest));
+  $('shop').classList.toggle('on',!!shop);
+  if(G&&G.prep)$('openDay').textContent=$('next').textContent='Apri il giorno '+(G.day+1);
+}
+function openDay(){
+  if(chefs.some(c=>c.carry)||G.give.length){setPrep(false);return say(chefs[0].carry||G.give.length?'Prima posa gli oggetti che hai in braccio':'Il tuo amico ha ancora un oggetto in braccio');}
+  G.prep=false;setPrep(false);startDay();
+}
+$('edit').addEventListener('click',()=>{setPrep(false);say(chefs[0].carry?'Usa per posare: l\'oggetto va davanti a te':'Usa davanti a un oggetto per prenderlo e spostarlo');});
+$('next').addEventListener('click',openDay);
+$('openDay').addEventListener('click',openDay);
+$('toShop').addEventListener('click',()=>{refreshShop();setPrep(true);});
 
 /* ---------- menu ricette ---------- */
 function howTo(r){
@@ -543,10 +651,10 @@ function openBook(){
   if(G.loc==='sushi'||G.loc==='ristorante')$('bookT').textContent='Menu del '+G.L.name.toLowerCase();
   const box=$('recs');box.innerHTML='';
   for(const r of menuAll()){
-    const row=document.createElement('div');row.className='rec'+(r.day>G.day?' lock':'');
+    const row=document.createElement('div');row.className='rec'+(menuAll().indexOf(r)>=G.rec?' lock':'');
     row.append(iconCanvas(60,u=>{drawItem({k:'plate',c:r.c},u/2,u/2,u*1.5);}));
     const t=document.createElement('div'),b=document.createElement('b'),sm=document.createElement('small');
-    b.textContent=r.name;sm.textContent=r.day>G.day?'Arriva il giorno '+r.day:howTo(r);t.append(b,sm);
+    b.textContent=r.name;sm.textContent=menuAll().indexOf(r)>=G.rec?'Si può aggiungere a fine giornata, ogni due giorni':howTo(r);t.append(b,sm);
     const pr=document.createElement('span');pr.className='pr';pr.textContent=r.p+' €';
     row.append(t,pr);box.append(row);
   }
@@ -560,13 +668,13 @@ function freeTable(){return S.find(s=>s.type==='table'&&!s.cust&&!s.dirty)}
 function steam(s,col,n){if(Math.random()<n)parts.push({x:s.x+.35+Math.random()*.3,y:s.y+.35,vx:(Math.random()-.5)*.15,vy:-.35-Math.random()*.2,t:1.2,max:1.2,r:.06+Math.random()*.05,col});}
 function update(dt){
   G.t+=dt;
-  while(G.spawns.length&&G.spawns[0]<=G.t){G.spawns.shift();const m=22*G.patMul*G.D.pat;G.queue.push({pat:m,max:m,shirt:rnd(SHIRTS),skin:rnd(SKIN),hair:rnd(HAIR),style:Math.floor(Math.random()*4)});}
+  while(G.spawns.length&&G.spawns[0]<=G.t){G.spawns.shift();const m=Math.max(28,55-G.day*2.5)*G.patMul*G.D.pat;G.queue.push({pat:m,max:m,shirt:rnd(SHIRTS),skin:rnd(SKIN),hair:rnd(HAIR),style:Math.floor(Math.random()*4)});}
   let ft;
   while(G.queue.length&&(ft=freeTable())){
-    const q=G.queue.shift(),dish=rnd(menu()),mx=(Math.max(24,46-G.day*1.3)+dish.c.length*7)*G.patMul*G.D.pat;
+    const q=G.queue.shift(),dish=rnd(menu()),mx=(Math.max(42,80-G.day*3.5)+dish.c.length*8)*G.patMul*G.D.pat;
     ft.cust={st:'think',t:1.6,dish,pat:mx,max:mx,shirt:q.shirt,skin:q.skin,hair:q.hair,style:q.style};
   }
-  for(let i=G.queue.length-1;i>=0;i--){G.queue[i].pat-=dt;if(G.queue[i].pat<=0){G.queue.splice(i,1);loseHeart();if(!G.running)return;}}
+  for(let i=G.queue.length-1;i>=0;i--){G.queue[i].pat-=dt*(seatOf(i)?WAIT_RATE:1);if(G.queue[i].pat<=0){G.queue.splice(i,1);loseHeart();if(!G.running)return;}}
   for(const s of S){
     if(s.type==='table'&&s.cust){
       const c=s.cust;
@@ -574,12 +682,21 @@ function update(dt){
       else if(c.st==='order'){c.pat-=dt;if(c.pat<=0){s.cust=null;loseHeart();if(!G.running)return;}}
       else if(c.st==='eat'){c.t-=dt;if(c.t<=0){s.cust=null;s.dirty=true;}}
     }
+    if(s.type==='proc'&&s.p==='board'&&s.auto&&s.state==='cook'){s.prog+=dt/(TIME.board*G.chopMul);if(s.prog>=1){s.item=doneItem('board',s.item);s.state='done';s.prog=0;s.auto=false;}}
     if(s.type==='proc'&&s.item&&s.p!=='board'){
       if(s.state==='cook'){s.prog+=dt/(TIME[s.p]*G.cookMul);steam(s,'255,255,255',dt*4);if(s.prog>=1){s.item=doneItem(s.p,s.item);s.state='done';s.prog=0;}}
       else if(s.state==='done'){s.prog+=dt/(9*G.D.burn);steam(s,'255,255,255',dt*2);if(s.prog>=1){s.item={k:'burnt'};s.state='burnt';s.prog=0;say('Si è bruciato qualcosa: buttalo nel cestino');}}
       else if(s.state==='burnt')steam(s,'70,66,62',dt*6);
     }
   }
+  automate(dt);
+  moveChefs(dt);
+  if(G.t>=G.dayLen&&!G.spawns.length&&!G.queue.length&&!S.some(s=>s.cust))endDay();
+}
+/* i clienti in fila si siedono ai tavolini d'attesa (2 posti ciascuno) e lì la pazienza cala molto più piano */
+const WAIT_RATE=.35;
+function seatOf(i){const ws=S.filter(s=>s.type==='wait');return i<ws.length*2?[ws[i>>1],i&1]:null;}
+function moveChefs(dt){
   for(const chef of chefs){
   const remote=G.online&&chef.i===1;
   const v=remote?{x:0,y:0}:input(chef.i),mag=Math.hypot(v.x,v.y);
@@ -597,36 +714,44 @@ function update(dt){
       if(s.prog>=1){s.item=doneItem('board',s.item);s.state='done';s.prog=0;chef.work=null;}
     }else if(s.type==='sink'&&s.n>0){
       s.prog+=dt/2;steam(s,'190,220,235',dt*3);
-      if(s.prog>=1){s.n--;G.plates++;s.prog=0;if(!s.n)chef.work=null;}
+      if(s.prog>=1){s.n--;s.prog=0;chef.work=null;chef.h={k:'plate',c:[]};}   // il piatto pulito finisce in mano: va riportato alla pila
     }else chef.work=null;
   }
   chef.face=facing(chef);
   }
-  if(G.t>=G.dayLen&&!G.spawns.length&&!G.queue.length&&!S.some(s=>s.cust))endDay();
 }
 
 function offerList(){
   const L=[];
-  const procs=[...new Set(S.filter(s=>s.type==='proc').map(s=>s.p))];
-  for(const p of procs)if(S.filter(s=>s.type==='proc'&&s.p===p).length<2)L.push({ic:{type:'proc',p},name:PN[p]+' in più',d:'Due cose insieme invece di una',cost:p==='board'?18:28,fx:()=>addStation({type:'proc',p})});
-  if(G.counters<4)L.push({ic:{type:'counter'},name:'Bancone in più',d:'Più spazio per appoggiare',cost:10,fx:()=>{if(addStation({type:'counter'}))G.counters++;}});
-  const nt=S.filter(s=>s.type==='table').length;
-  if(nt<TABLE_SPOTS.length)L.push({ic:{type:'table',seat:0},name:'Tavolo in più',d:'Un posto in più in sala',cost:20+nt*5,fx:()=>{addTable();makeBg();}});
+  const A=allStations(),cnt=f=>A.filter(f).length,give=o=>()=>{G.give.push(mkStation(o));giveNext();};
+  const procs=[...new Set(A.filter(s=>s.type==='proc').map(s=>s.p))];
+  for(const p of procs)if(cnt(s=>s.type==='proc'&&s.p===p)<2)L.push({ic:{type:'proc',p},name:PN[p]+' in più',d:'Due cose insieme invece di una',cost:p==='board'?18:28,fx:give({type:'proc',p})});
+  if(G.counters<4)L.push({ic:{type:'counter'},name:'Bancone in più',d:'Più spazio per appoggiare',cost:10,fx:()=>{G.counters++;give({type:'counter'})();}});
+  const nt=cnt(s=>s.type==='table');
+  if(nt<MAX_TABLES)L.push({ic:{type:'table',seat:0},name:'Tavolo in più',d:'Un posto in più in sala',cost:20+nt*5,fx:give({type:'table',seat:Math.floor(Math.random()*4)})});
+  const nw=cnt(s=>s.type==='wait');
+  if(nw<MAX_WAIT)L.push({ic:{type:'wait'},name:'Tavolino d\'attesa',d:'Due clienti in fila aspettano seduti, con più pazienza',cost:24+nw*10,fx:give({type:'wait'})});
   const up=(id,max,name,d,cost,fx)=>{if((G.up[id]||0)<max)L.push({id,ic:id,name,d,cost,fx});};
   up('sp',3,'Scarpe comode','Lo chef cammina più veloce',18,()=>G.speed*=1.15);
   up('pa',4,'Cestino di grissini','I clienti aspettano di più',22,()=>G.patMul*=1.15);
   up('pl',4,'Piatti in più','Due piatti puliti in più',12,()=>G.maxPlates+=2);
   up('po',3,'Fuochi potenti','Si cuoce più in fretta',20,()=>G.cookMul*=.82);
   up('kn',2,'Coltello affilato','Tagli più rapidi',15,()=>G.chopMul*=.72);
-  return L.sort(()=>Math.random()-.5).slice(0,3);
+  const auto=[];
+  if(cnt(s=>s.type==='belt')<12)auto.push({ic:{type:'belt'},name:'Nastro',d:'Porta da solo le cose alla casella dopo, nel verso in cui lo posi',cost:30,fx:give({type:'belt'})});
+  if(cnt(s=>s.type==='arm')<8)auto.push({ic:{type:'arm'},name:'Braccio meccanico',d:'Prende da una casella e posa su un\'altra, fino a 2 caselle di distanza',cost:40,fx:give({type:'arm'})});
+  const out=L.sort(()=>Math.random()-.5).slice(0,3);
+  if(auto.length)out.push(rnd(auto));
+  return out;
 }
 function endDay(){
-  G.running=false;saveBest();padReset();
+  G.running=false;G.prep=true;saveBest();padReset();
+  for(const c of chefs){c.h=null;c.work=null;}
   $('shopT').textContent='Giorno '+G.day+' chiuso';
-  const nx=menuAll().filter(r=>r.day===G.day+1);
+  const nx=G.mal.length?[{name:'Imprevisti: '+G.mal.join(', ')}]:[];
   $('sum').innerHTML='<div class="stat"><span>Clienti serviti</span><span>'+G.dayServed+' di '+G.dayTotal+'</span></div><div class="stat"><span>Incasso</span><span>'+G.earn+' €</span></div><div class="stat"><span>In cassa</span><span id="cassa">'+G.coins+' €</span></div>'+
     (nx.length?'<p class="new"></p>':'');
-  if(nx.length)$('sum').querySelector('.new').textContent='Domani in menu anche '+nx.map(r=>r.name.toLowerCase()).join(', ');
+  if(nx.length)$('sum').querySelector('.new').textContent=nx[0].name;
   const av=offerList(),box=$('offers');box.innerHTML='';
   av.forEach(u=>{
     const b=document.createElement('button');b.className='offer';
@@ -643,15 +768,49 @@ function endDay(){
     box.append(b);u.btn=b;
   });
   G.offers=av;refreshShop();
-  $('next').textContent='Apri il giorno '+(G.day+1);
-  $('shop').classList.add('on');
+  if(G.day%2===0)openPick();else setPrep(true);
+}
+/* ogni due giorni si sceglie: una ricetta nuova nel menu oppure un imprevisto */
+const MALUS=[
+  {id:'fretta',name:'Clienti di fretta',d:'La pazienza dei clienti cala del 12%',fx:()=>G.patMul*=.88},
+  {id:'moda',name:'Locale di moda',d:'Ogni giorno il 15% di clienti in più',fx:()=>G.custMul*=1.15},
+  {id:'gas',name:'Gas debole',d:'Fornelli, piastre e forni cuociono il 15% più piano',fx:()=>G.cookMul*=1.15},
+  {id:'tirchi',name:'Clienti tirchi',d:'Niente più mance, anche se servi in fretta',once:true,fx:()=>G.noTip=true},
+  {id:'affitto',name:'Affitto',d:'Paghi 8 € a ogni apertura',fx:()=>G.rent+=8},
+  {id:'rotto',name:'Piatto rotto',d:'Un piatto pulito in meno',ok:()=>G.maxPlates>2,fx:()=>G.maxPlates--},
+  {id:'fornitore',name:'Fornitore caro',d:'Ogni piatto rende 1 € in meno',ok:()=>G.priceMinus<2,fx:()=>G.priceMinus++}];
+function openPick(){
+  const box=$('picks');box.innerHTML='';
+  const opts=[];
+  const nr=menuAll()[G.rec];
+  if(nr)opts.push({rec:nr,name:'Nuova ricetta: '+nr.name,d:howTo(nr)+' · '+nr.p+' €'});
+  const ms=MALUS.filter(m=>!(m.once&&G.mal.includes(m.name))&&(!m.ok||m.ok())).sort(()=>Math.random()-.5).slice(0,2);
+  for(const m of ms)opts.push({mal:m,name:m.name,d:m.d});
+  if(!opts.length){setPrep(true);return;}
+  for(const o of opts){
+    const b=document.createElement('button');b.className='offer';
+    b.append(iconCanvas(44,u=>{X.fillStyle=o.rec?'#efebe3':'#3a2a26';rr(0,0,u,u,8);X.fill();if(o.rec)drawItem({k:'plate',c:o.rec.c},u/2,u/2,u*1.35);else malusIcon(u);}));
+    const t=document.createElement('div'),n=document.createElement('b'),d=document.createElement('small');
+    n.textContent=o.name;d.textContent=o.d;t.append(n,d);b.append(t);
+    b.addEventListener('click',()=>{
+      if(o.rec){G.rec++;G.newRec=o.rec.name;ensureStations();say('Domani in menu: '+o.rec.name+'. Le nuove casse sono già in cucina');}
+      else{o.mal.fx();G.mal.push(o.mal.name);say('Imprevisto: '+o.mal.name);}
+      $('pick').classList.remove('on');setPrep(true);
+    });
+    box.append(b);
+  }
+  $('pick').classList.add('on');
+}
+function malusIcon(u){
+  X.fillStyle='#e0533f';X.beginPath();X.moveTo(u/2,u*.18);X.lineTo(u*.84,u*.78);X.lineTo(u*.16,u*.78);X.closePath();X.fill();
+  X.fillStyle='#fbf9f4';rr(u*.47,u*.38,u*.06,u*.24,u*.03);X.fill();circ(u/2,u*.69,u*.04,'#fbf9f4');
 }
 function refreshShop(){
   const el=$('cassa');if(el)el.textContent=G.coins+' €';
   G.offers.forEach(u=>{if(!u.btn.classList.contains('got'))u.btn.disabled=G.coins<u.cost;});
 }
 function gameOver(){
-  G.running=false;saveBest();padReset();
+  G.running=false;G.prep=false;document.body.classList.remove('prep');saveBest();padReset();
   $('osum').innerHTML='<div class="stat"><span>Locale</span><span>'+G.L.name+'</span></div><div class="stat"><span>Difficoltà</span><span>'+G.D.name+'</span></div><div class="stat"><span>Giorni aperti</span><span>'+G.day+'</span></div><div class="stat"><span>Clienti serviti</span><span>'+G.served+'</span></div><div class="stat"><span>Record</span><span>giorno '+bestDay('cl-'+G.loc+'-'+G.dk)+'</span></div>';
   $('over').classList.add('on');
   if(G.online)netSend({t:'over',html:$('osum').innerHTML});
@@ -697,15 +856,14 @@ $('quit').addEventListener('click',()=>{$('setMain').style.display='none';$('set
 $('quitNo').addEventListener('click',()=>{$('setMain').style.display='';$('setConfirm').style.display='none';});
 $('quitYes').addEventListener('click',()=>{
   if(G&&!G.guest){saveBest();G.running=false;}G=null;chefs=[];padReset();netClose();musicStop();
-  for(const id of ['settings','shop','book','over'])$(id).classList.remove('on');
-  document.body.classList.remove('editing','two');
+  for(const id of ['settings','shop','book','over','pick'])$(id).classList.remove('on');
+  document.body.classList.remove('prep','two');
   $('day').textContent='Giorno 1';$('coins').textContent='0 €';$('clock').style.width='0';$('hearts').innerHTML='';
   $('hint').textContent='Pad per muoverti, Usa davanti a una postazione';$('hint').className='';
   renderMenu();$('start').classList.add('on');
 });
 $('startPlay').addEventListener('click',()=>{auInit();$('start').classList.remove('on');renderMenu();$('menu').classList.add('on');});
 $('play').addEventListener('click',()=>{auInit();if(plyN===3&&!(NET.role==='host'&&NET.peer))return;$('menu').classList.remove('on');newGame();});
-$('next').addEventListener('click',()=>{$('shop').classList.remove('on');startDay();});
 $('again').addEventListener('click',()=>{$('over').classList.remove('on');musicStop();if(G&&G.guest){G=null;chefs=[];netClose();}renderMenu();$('menu').classList.add('on');});
 
 /* ---------- disegno: primitive ---------- */
@@ -883,8 +1041,19 @@ function makeBg(){
   const RUG={wood:['#7b2f25','#e9d9b0'],diner:['#2f6db3','#e9e4d8'],terra:['#355c3a','#efe2c4'],tatami:['#3a3f6b','#d9cfa8'],parquet:['#6e1f2a','#c9a95c']}[L.floor];
   for(const s of S)if(s.type==='table'){const px=s.x*u,py=s.y*u;
     const lg=X.createRadialGradient(px+u/2,py+u/2,u*.1,px+u/2,py+u/2,u*1.3);lg.addColorStop(0,'rgba(255,214,150,.22)');lg.addColorStop(1,'rgba(255,214,150,0)');X.fillStyle=lg;X.fillRect(px-u*1.3,py-u*1.3,u*3.6,u*3.6);}
-  X.fillStyle='rgba(0,0,0,.18)';X.fillRect(0,KR*u,W*u,u*.1);
-  X.fillStyle='#6b4a2e';X.fillRect(0,KR*u-u*.05,W*u,u*.07);
+  // muro sottile tra cucina e sala: si interrompe alla porta, sopra i passavivande diventa una finestra con davanzale
+  const wy=KR*u,wt=Math.max(4,u*.16);
+  X.fillStyle='rgba(0,0,0,.22)';X.fillRect(0,wy+wt/2,W*u,u*.1);
+  for(let x=0;x<W;x++){
+    if(x===DX)continue;
+    const win=PASS.some(p=>p[0]===x);
+    X.fillStyle=win?'#8a7a66':'#45403a';X.fillRect(x*u,wy-wt/2,u,win?wt*.55:wt);
+    X.fillStyle='rgba(255,255,255,'+(win?.18:.1)+')';X.fillRect(x*u,wy-wt/2,u,1.5);
+  }
+  X.fillStyle='#45403a';X.fillRect(DX*u-wt*.3,wy-wt*.9,wt*.6,wt*1.8);X.fillRect((DX+1)*u-wt*.3,wy-wt*.9,wt*.6,wt*1.8);
+  X.fillStyle='#a47645';
+  X.save();X.translate(DX*u+wt*.2,wy);X.rotate(.55);rr(0,-u*.04,u*.42,u*.08,u*.03);X.fill();X.restore();
+  X.save();X.translate((DX+1)*u-wt*.2,wy);X.rotate(Math.PI-.55);rr(0,-u*.04,u*.42,u*.08,u*.03);X.fill();X.restore();
   X.fillStyle='rgba(30,20,12,.25)';X.fillRect(0,EY*u,W*u,u);
   X.fillStyle='#3f3328';rr(EX*u-u*.35,EY*u+u*.5,u*1.7,u*.46,u*.08);X.fill();
   X.fillStyle='#57473a';rr(EX*u-u*.28,EY*u+u*.56,u*1.56,u*.34,u*.06);X.fill();
@@ -920,6 +1089,25 @@ function drawStation(s,now){
   const u=TS,px=s.x*u,py=s.y*u,cx=px+u/2,cy=py+u/2;
   switch(s.type){
   case 'counter':block(px,py,'#dcd6c9','#8f897b','#cfc8b9');break;
+  case 'belt':{// nastro: frecce gialle che scorrono nel verso del nastro
+    shadow(cx,py+u*.92,u*.44,u*.08,.18);X.fillStyle='#2f3236';rr(px+u*.04,py+u*.07,u*.92,u*.86,u*.1);X.fill();X.fillStyle='#4a4e53';rr(px+u*.08,py+u*.1,u*.84,u*.78,u*.08);X.fill();
+    X.save();X.translate(cx,cy-u*.01);X.rotate((s.dir||0)*Math.PI/2);
+    X.fillStyle='rgba(0,0,0,.25)';X.fillRect(-u*.42,-u*.3,u*.84,u*.04);X.fillRect(-u*.42,u*.26,u*.84,u*.04);
+    X.strokeStyle='rgba(240,196,70,.9)';X.lineWidth=Math.max(1.5,u*.05);X.lineCap='round';X.lineJoin='round';
+    const run=G.running&&!G.paused?(now*.9)%1:0;
+    for(let i=0;i<3;i++){const t=(i+run)/3,x=(t-.5)*u*.72;X.beginPath();X.moveTo(x-u*.07,-u*.14);X.lineTo(x+u*.05,0);X.lineTo(x-u*.07,u*.14);X.stroke();}
+    X.restore();
+    if(s.item){const [dx,dy]=DIRS[s.dir||0],k=(Math.min(1,s.prog)-.5)*u*.8;X.save();X.translate(cx+dx*k,cy-u*.03+dy*k);X.scale(.78,.78);drawItem(s.item,0,0,u);X.restore();}
+    break;}
+  case 'arm':{// braccio meccanico: si gira verso dove prende (vuoto) o dove posa (pieno)
+    shadow(cx,cy+u*.32,u*.36,u*.09,.22);
+    X.fillStyle='#2b2e31';rr(px+u*.14,py+u*.16,u*.72,u*.72,u*.14);X.fill();X.fillStyle='#3f4347';rr(px+u*.16,py+u*.14,u*.68,u*.68,u*.13);X.fill();
+    circ(cx,cy,u*.22,'#e0a33a');circ(cx,cy,u*.16,'#c98a24');
+    const tg=s.item?s.dst:s.src,ang=tg?Math.atan2(tg[1]-s.y,tg[0]-s.x):-Math.PI/2,len=u*.46;
+    X.save();X.translate(cx,cy);X.rotate(ang);X.fillStyle='#c9ced2';rr(0,-u*.065,len,u*.13,u*.06);X.fill();X.fillStyle='#8a9096';rr(len-u*.04,-u*.13,u*.07,u*.26,u*.03);X.fill();X.restore();
+    circ(cx,cy,u*.08,'#2b2e31');
+    if(s.item){X.save();X.translate(cx+Math.cos(ang)*len,cy+Math.sin(ang)*len);X.scale(.5,.5);drawItem(s.item,0,0,u);X.restore();}
+    break;}
   case 'crate':
     block(px,py,'#b07843','#6b4322','#a06a38');X.fillStyle='rgba(60,32,12,.35)';
     X.fillRect(px+u*.1,py+u*.32,u*.8,1.5);X.fillRect(px+u*.1,py+u*.62,u*.8,1.5);
@@ -948,10 +1136,23 @@ function drawStation(s,now){
     X.fillStyle='#b9c0c5';rr(cx-u*.05,py+u*.07,u*.1,u*.2,u*.03);X.fill();circ(cx,py+u*.09,u*.06,'#d8dde0');
     for(let i=0;i<Math.min(s.n,3);i++)plate(cx-u*.08+i*u*.08,cy+u*.02,u*.2,true);
     if(s.n>3){X.fillStyle='#3a3630';X.font='500 '+Math.round(u*.2)+'px Rubik,sans-serif';X.textAlign='right';X.textBaseline='alphabetic';X.fillText(s.n,px+u*.9,py+u*.9);}break;
-  case 'bin':shadow(cx,cy+u*.32,u*.32,u*.09,.22);circ(cx,cy+u*.03,u*.33,'#45494c');circ(cx,cy,u*.33,'#5f6468');circ(cx,cy,u*.28,'#767c80');circ(cx-u*.08,cy-u*.1,u*.08,'rgba(255,255,255,.2)');X.fillStyle='#3a3d40';rr(cx-u*.1,cy-u*.03,u*.2,u*.06,u*.03);X.fill();break;
+  case 'bin':// cestino: secchio verde con coperchio e maniglia
+    shadow(cx,cy+u*.36,u*.32,u*.08,.22);
+    X.fillStyle='#3f5e43';X.beginPath();X.moveTo(cx-u*.27,cy-u*.12);X.lineTo(cx+u*.27,cy-u*.12);X.lineTo(cx+u*.22,cy+u*.36);X.lineTo(cx-u*.22,cy+u*.36);X.closePath();X.fill();
+    X.fillStyle='#4f7353';X.beginPath();X.moveTo(cx-u*.25,cy-u*.12);X.lineTo(cx+u*.05,cy-u*.12);X.lineTo(cx+u*.03,cy+u*.36);X.lineTo(cx-u*.2,cy+u*.36);X.closePath();X.fill();
+    X.fillStyle='rgba(0,0,0,.2)';for(const ox of [-.12,0,.12])X.fillRect(cx+ox*u-u*.012,cy-u*.06,u*.024,u*.36);
+    X.fillStyle='#5f8a63';rr(cx-u*.32,cy-u*.22,u*.64,u*.12,u*.05);X.fill();X.fillStyle='rgba(255,255,255,.2)';X.fillRect(cx-u*.28,cy-u*.21,u*.5,u*.025);
+    X.fillStyle='#2f4532';rr(cx-u*.09,cy-u*.29,u*.18,u*.08,u*.04);X.fill();
+    break;
+  case 'wait':// tavolino d'attesa: piccolo tavolo tondo da bar con due sgabelli rossi
+    shadow(cx,cy+u*.3,u*.44,u*.09,.2);
+    for(const sx of [-.36,.36]){circ(cx+sx*u,cy+u*.05,u*.15,'#3a2a20');circ(cx+sx*u,cy,u*.14,'#c63a2a');circ(cx+sx*u-u*.04,cy-u*.04,u*.05,'rgba(255,255,255,.25)');}
+    circ(cx,cy+u*.04,u*.21,'#3a2414');circ(cx,cy,u*.2,'#6b4428');circ(cx,cy,u*.15,'#7f5232');
+    circ(cx,cy-u*.01,u*.05,'#e9e4d8');circ(cx,cy-u*.06,u*.035,'#e0a33a');ell(cx+u*.03,cy-u*.04,u*.03,u*.015,.6,'#3f8a3a');
+    break;
   case 'table':drawTable(s,px,py,u);break;
   }
-  if(s.item&&s.type!=='table'){
+  if(s.item&&s.type!=='table'&&s.type!=='belt'&&s.type!=='arm'){
     X.save();X.translate(cx,cy-u*.03);if(s.type==='proc'&&s.p!=='board'&&s.p!=='oven')X.scale(.8,.8);if(s.p==='oven'){X.translate(0,u*.12);X.scale(.6,.6);}drawItem(s.item,0,0,u);X.restore();
   }
   if(s.type==='proc'){
@@ -961,8 +1162,8 @@ function drawStation(s,now){
   }
   if(s.type==='sink'&&s.prog>0)bar(cx,py+u*.86,s.prog,'#f3efe6');
 }
-function bar(cx,y,f,col){
-  const w=TS*.72,h=Math.max(5,TS*.1);
+function bar(cx,y,f,col,wf){
+  const w=TS*(wf||.72),h=Math.max(5,TS*.1);
   X.fillStyle='rgba(20,22,19,.8)';rr(cx-w/2,y,w,h,h/2);X.fill();
   X.fillStyle=col;rr(cx-w/2+1.5,y+1.5,Math.max(0,(w-3)*Math.min(1,f)),h-3,(h-3)/2);X.fill();
 }
@@ -984,7 +1185,7 @@ function drawChef(chef,now){
   X.save();X.rotate(ang+Math.PI/2);
   ell(0,u*.02,u*.3,u*.2,0,'#d6d0c3');ell(0,0,u*.29,u*.19,0,'#fbf9f4');
   X.fillStyle=chef.i?(G.L.scarf==='#2f6db3'?'#e0a33a':'#2f6db3'):G.L.scarf;rr(-u*.12,-u*.17,u*.24,u*.07,u*.03);X.fill();
-  const sw=Math.sin(wk*2)*u*.05,hold=!!chef.h;
+  const sw=Math.sin(wk*2)*u*.05,hold=!!(chef.h||chef.carry);
   circ(-u*.24,hold?-u*.2:-u*.02+sw,u*.07,'#e2b48c');circ(u*.24,hold?-u*.2:-u*.02-sw,u*.07,'#e2b48c');
   X.restore();
   circ(fx*u*.04,fy*u*.04-u*.02,u*.14,'#e2b48c');
@@ -992,6 +1193,16 @@ function drawChef(chef,now){
   X.strokeStyle='#e0dbd0';X.lineWidth=1;X.beginPath();X.arc(0,-u*.07,u*.15,0,Math.PI*2);X.stroke();
   X.restore();
   if(chef.h){X.save();X.translate(cx+fx*u*.4,cy+fy*u*.4-u*.1-b);X.scale(.82,.82);drawItem(chef.h,0,0,u);X.restore();}
+  if(chef.carry){const s=chef.carry,ox=s.x,oy=s.y;X.save();X.translate(cx+fx*u*.32,Math.max(u*.36,cy+fy*u*.32-u*.3-b));X.scale(.72,.72);s.x=-.5;s.y=-.5;try{drawStation(s,now);}finally{s.x=ox;s.y=oy;X.restore();}}
+}
+function tileMark(p,col,txt,dash){
+  const u=TS;X.save();X.strokeStyle=col;X.lineWidth=3;if(dash)X.setLineDash([u*.12,u*.08]);rr(p[0]*u+3,p[1]*u+3,u-6,u-6,u*.16);X.stroke();X.restore();
+  circ(p[0]*u+u*.2,p[1]*u+u*.2,u*.15,col);X.fillStyle='#fff';X.font='600 '+Math.round(u*.2)+'px Rubik,sans-serif';X.textAlign='center';X.textBaseline='middle';X.fillText(txt,p[0]*u+u*.2,p[1]*u+u*.21);
+}
+function armLinks(x,y,a,b,al){
+  const u=TS,c=[(x+.5)*u,(y+.5)*u],line=(p,q,col)=>{X.strokeStyle=col;X.lineWidth=2.5;X.setLineDash([5,4]);X.beginPath();X.moveTo(p[0],p[1]);X.lineTo(q[0],q[1]);X.stroke();X.setLineDash([]);
+    const an=Math.atan2(q[1]-p[1],q[0]-p[0]);X.fillStyle=col;X.beginPath();X.moveTo(q[0],q[1]);X.lineTo(q[0]-Math.cos(an-.5)*9,q[1]-Math.sin(an-.5)*9);X.lineTo(q[0]-Math.cos(an+.5)*9,q[1]-Math.sin(an+.5)*9);X.fill();};
+  X.save();X.globalAlpha=al;line([(a[0]+.5)*u,(a[1]+.5)*u],c,'#2f6db3');line(c,[(b[0]+.5)*u,(b[1]+.5)*u],'#e0a33a');X.restore();
 }
 function bubble(s,now){
   const u=TS,c=s.cust,cx=s.x*u+u*.9,by=s.y*u-u*.84,bw=u*.8,bh=u*.62;
@@ -1010,23 +1221,23 @@ function draw(){
   X=MAINX;X.setTransform(DPR,0,0,DPR,0,0);
   if(!G){X.fillStyle='#262a25';X.fillRect(0,0,W*u,H*u);return;}
   X.drawImage(bg,0,0,W*u,H*u);
-  const dg=drag&&drag.moved?drag.s:null;
-  for(const s of S)if(s.type!=='table'&&s!==dg)drawStation(s,now);
+  for(const s of S)if(s.type!=='table')drawStation(s,now);
   for(const s of S)if(s.type==='table')drawStation(s,now);
-  if(G.edit){
-    X.fillStyle='rgba(20,22,19,.5)';X.fillRect(0,KR*u,W*u,(H-KR)*u);
-    if(dg){
-      if(inB(drag.tx,drag.ty)&&drag.ty<KR&&!(drag.tx===dg.x&&drag.ty===dg.y)){X.fillStyle=drag.ok?'rgba(106,168,79,.35)':'rgba(216,64,47,.3)';rr(drag.tx*u+2,drag.ty*u+2,u-4,u-4,u*.16);X.fill();X.strokeStyle=drag.ok?'#6aa84f':'#d8402f';X.lineWidth=2.5;X.stroke();}
-      X.fillStyle='rgba(20,22,19,.18)';rr(dg.x*u+3,dg.y*u+3,u-6,u-6,u*.16);X.fill();
-      const ox=dg.x,oy=dg.y;dg.x=drag.fx-.5;dg.y=drag.fy-.6;X.globalAlpha=.92;drawStation(dg,now);X.globalAlpha=1;dg.x=ox;dg.y=oy;
-    }else if(G.sel){outline(G.sel,'rgba(198,58,42,'+(.65+.35*Math.sin(now*8))+')',3);moveMark(G.sel,now);}
-    return;
-  }
   if(G.running)for(const c of chefs)if(c.face)outline(c.face,G.two?(c.i?'rgba(47,109,179,.85)':'rgba(198,58,42,.85)'):'rgba(28,31,27,.55)',2.5);
-  if(G.running)G.queue.forEach((q,i)=>{
-    const qx=(EX-i)*u+u/2,qy=EY*u+u*.45;if(qx<0)return;
-    person(qx,qy,u*.85,q);bar(qx,qy-u*.46,q.pat/q.max,patCol(q.pat/q.max));
-  });
+  if(G.prep){for(const s of S)if(s.type==='arm'&&s.src)armLinks(s.x,s.y,s.src,s.dst,.55);}
+  if(G.prep)for(const c of chefs){
+    if(c.carry&&c.carry.type==='arm'&&c.sel&&c.sel.step<2){const [x,y]=frontCell(c);if(c.sel.src)tileMark(c.sel.src,'#2f6db3','1');if(inB(x,y))tileMark([x,y],c.sel.step?'#e0a33a':'#2f6db3',c.sel.step?'2':'1',true);continue;}
+    if(c.carry&&c.carry.type==='arm'&&c.sel&&c.sel.step===2){tileMark(c.sel.src,'#2f6db3','1');tileMark(c.sel.dst,'#e0a33a','2');const [x,y]=frontCell(c);if(inB(x,y))armLinks(x,y,c.sel.src,c.sel.dst,.9);}
+    if(c.carry&&c.carry.type==='belt'){const [x,y]=frontCell(c),[dx,dy]=DIRS[dirOf(c)];if(inB(x,y)){X.save();X.translate((x+.5)*u,(y+.5)*u);X.rotate(dirOf(c)*Math.PI/2);X.fillStyle='rgba(240,196,70,.9)';X.beginPath();X.moveTo(u*.3,0);X.lineTo(-u*.05,-u*.2);X.lineTo(-u*.05,u*.2);X.fill();X.restore();}}
+    if(c.carry){const t=dropCheck(c);if(inB(t.x,t.y)){const k=t.ok?'106,168,79':'216,64,47';X.fillStyle='rgba('+k+','+(t.ok?.35:.25)+')';rr(t.x*u+2,t.y*u+2,u-4,u-4,u*.16);X.fill();X.strokeStyle='rgba('+k+',.95)';X.lineWidth=2.5;X.stroke();}}
+    else if(c.face&&!c.face.fixed){outline(c.face,'rgba(198,58,42,'+(.65+.35*Math.sin(now*8))+')',3);moveMark(c.face,now);}
+  }
+  if(G.running){let k=0;G.queue.forEach((q,i)=>{
+    const st=seatOf(i);let qx,qy,sc=.85;
+    if(st){qx=(st[0].x+.5+(st[1]?.36:-.36))*u;qy=(st[0].y+.42)*u;sc=.7;}
+    else{qx=(EX-k++)*u+u/2;qy=EY*u+u*.45;if(qx<0)return;}
+    person(qx,qy,u*sc,q);bar(qx,st?qy-u*.4:qy-u*.46,q.pat/q.max,patCol(q.pat/q.max),st?.4:.72);
+  });}
   for(const s of S)if(s.type==='table'&&s.cust&&s.cust.st!=='eat')bubble(s,now);
   for(const c of chefs)drawChef(c,now);
   for(const p of parts){const a=Math.max(0,p.t/p.max);circ(p.x*u,p.y*u,p.r*u*(1.6-a*.6),'rgba('+p.col+','+(a*.45)+')');}
@@ -1037,9 +1248,12 @@ function draw(){
 function hud(){
   if(!G)return;
   $('day').textContent='Giorno '+G.day;
-  $('clock').style.width=Math.min(100,G.t/G.dayLen*100)+'%';
+  $('clock').style.width=(G.prep?100:Math.min(100,G.t/G.dayLen*100))+'%';
   $('coins').textContent=G.coins+' €';
-  if(toastT<=0&&!G.edit){
+  if(toastT<=0&&G.prep){
+    const h=$('hint'),me=chefs.find(c=>c.i===(G.guest?1:0));h.className='';
+    h.textContent=me&&me.carry?'In braccio: '+stName(me.carry)+' · Usa per posarlo davanti a te':G.guest?(G.shop?'L\'host è al negozio. Usa davanti a un oggetto per spostarlo':'Usa davanti a un oggetto per spostarlo'):'Usa davanti a un oggetto per spostarlo'+(G.give.length?' · da posare: '+G.give.length:'');
+  }else if(toastT<=0){
     const h=$('hint');h.className='';
     const hs=chefs.filter(c=>c.h);
     h.textContent=hs.length?(G.two?chefs.map(c=>(c.i?'Blu: ':'Rosso: ')+(c.h?itemName(c.h):'mani libere')).join(' · '):'In mano: '+itemName(hs[0].h)):G.t>=G.dayLen?'Si chiude: servi gli ultimi clienti':'Pad per muoverti, Usa davanti a una postazione';
@@ -1084,7 +1298,7 @@ function netConnect(first){
     else netStatus(had?'Connessione persa':'Non riesco a raggiungere il server. Controlla l\'indirizzo');
     renderMenu();};
 }
-function showMenuMsg(t){for(const id of ['settings','shop','book','over','wait'])$(id).classList.remove('on');document.body.classList.remove('editing','two');renderMenu();$('menu').classList.add('on');netStatus(t);}
+function showMenuMsg(t){for(const id of ['settings','shop','book','over','wait','pick'])$(id).classList.remove('on');document.body.classList.remove('prep','two');renderMenu();$('menu').classList.add('on');netStatus(t);}
 function onNet(m){
   if(m.t==='room'){NET.role=m.role;NET.code=m.code;$('codeOut').textContent=m.code;$('codeOut').style.display='';
     netStatus(m.role==='host'?'Dai questo codice al tuo amico. Aspetto che entri…':'Sei nella stanza. Aspetta che l\'host apra il locale');renderMenu();}
@@ -1092,7 +1306,7 @@ function onNet(m){
   else if(m.t==='err')netStatus(m.msg);
   else if(m.t==='left'){
     if(m.who==='host'){NET.role=null;netClose();if(G&&G.guest){G=null;chefs=[];}showMenuMsg('L\'host ha chiuso la partita');}
-    else{NET.peer=false;if(G&&G.online)say('Il tuo amico si è disconnesso: può rientrare con lo stesso codice');else{netStatus('Il tuo amico è uscito. Aspetto…');renderMenu();}}
+    else{NET.peer=false;const c=G&&G.online&&!G.guest&&chefs[1];if(c&&c.carry){G.give.push(c.carry);c.carry=null;giveNext();}if(G&&G.online)say('Il tuo amico si è disconnesso: può rientrare con lo stesso codice');else{netStatus('Il tuo amico è uscito. Aspetto…');renderMenu();}}
   }
   else if(NET.role==='host'&&G&&G.online){
     if(m.t==='pos'||m.t==='use'){const c=chefs[1];
@@ -1113,18 +1327,20 @@ function onNet(m){
 $('mkRoom').addEventListener('click',()=>{auInit();netConnect({t:'create'});});
 $('joinRoom').addEventListener('click',()=>{auInit();const c=$('codeIn').value.trim().toUpperCase();if(c.length!==4)return netStatus('Il codice ha 4 lettere');netConnect({t:'join',code:c});});
 const r2=v=>Math.round(v*100)/100;
-function layoutKey(){return S.map(s=>[s.x,s.y,s.type,s.raw||'',s.p||'',s.seat||0].join(':')).join('|');}
+function layoutKey(){return S.map(s=>[s.x,s.y,s.type,s.raw||'',s.p||'',s.seat||0,s.dir||0,s.src||'',s.dst||''].join(':')).join('|');}
+const stPack=s=>[s.x,s.y,s.type,s.raw||0,s.p||0,s.seat||0,s.fixed?1:0,s.dir||0,s.src||0,s.dst||0];
+const stUnpack=a=>mkStation({x:a[0],y:a[1],type:a[2],raw:a[3]||undefined,p:a[4]||undefined,seat:a[5],fixed:!!a[6],dir:a[7]||0,src:a[8]||null,dst:a[9]||null});
 function snapshot(){
   const ix=s=>s?S.indexOf(s):-1,lk=layoutKey(),d={};
   NET.full=(NET.full||0)-1;
-  if(lk!==NET.lk||NET.full<=0){NET.lk=lk;NET.full=25;d.loc=G.loc;d.dk=G.dk;d.L=S.map(s=>[s.x,s.y,s.type,s.raw||0,s.p||0,s.seat||0]);}
+  if(lk!==NET.lk||NET.full<=0){NET.lk=lk;NET.full=25;d.loc=G.loc;d.dk=G.dk;d.L=S.map(stPack);}
   const rec=G.L.rec;
-  d.g=[G.day,r2(G.t),G.dayLen,G.coins,G.hearts,G.plates,G.running?1:0,G.paused?1:0,G.edit?1:0,r2(G.speed),+G.cookMul.toFixed(3),+G.chopMul.toFixed(3)];
+  d.g=[G.day,r2(G.t),G.dayLen,G.coins,G.hearts,G.plates,G.running?1:0,G.paused?1:0,G.prep?1:0,r2(G.speed),+G.cookMul.toFixed(3),+G.chopMul.toFixed(3),$('shop').classList.contains('on')||$('pick').classList.contains('on')?1:0,G.rec];
   d.s=S.map(s=>{const c=s.cust;return [s.item||0,r2(s.prog),s.state||0,s.n||0,s.dirty?1:0,
     c?[c.st,rec.indexOf(c.dish),r2(c.pat),r2(c.max),c.shirt,c.skin,c.hair,c.style,c.plate||0]:0];});
-  d.c=chefs.map(c=>[c.i,r2(c.cx),r2(c.cy),r2(c.fx),r2(c.fy),r2(c.walk),c.h||0,ix(c.work),ix(c.face)]);
+  d.c=chefs.map(c=>[c.i,r2(c.cx),r2(c.cy),r2(c.fx),r2(c.fy),r2(c.walk),c.h||0,ix(c.work),ix(c.face),c.carry?stPack(c.carry):0,c.sel?[c.sel.step,c.sel.src||0,c.sel.dst||0]:0]);
   d.q=G.queue.map(q=>[r2(q.pat),r2(q.max),q.shirt,q.skin,q.hair,q.style]);
-  d.fl=floats.map(f=>[r2(f.x),r2(f.y),r2(f.t),f.txt]);d.sel=ix(G.sel);
+  d.fl=floats.map(f=>[r2(f.x),r2(f.y),r2(f.t),f.txt]);
   return d;
 }
 /* se la connessione è intasata non si accodano altri aggiornamenti: meglio saltarne uno che arrivare in ritardo */
@@ -1139,7 +1355,7 @@ function hostTick(dt){
 }
 function guestTick(dt){
   const me=chefs.find(c=>c.i===1);if(!me)return;
-  const k=input(0),v=(k.x||k.y)?k:joys[0],mag=Math.hypot(v.x,v.y),mv=G.running&&!G.paused&&mag>.18;
+  const k=input(0),v=(k.x||k.y)?k:joys[0],mag=Math.hypot(v.x,v.y),mv=(G.running||G.prep)&&!G.paused&&mag>.18;
   if(mv){const vx=v.x/mag,vy=v.y/mag,d=G.speed*Math.min(1,mag)*dt;me.fx=vx;me.fy=vy;me.walk+=d*5;
     tryMove(me,vx*d,0,Math.abs(vx)>=Math.abs(vy));tryMove(me,0,vy*d,Math.abs(vy)>Math.abs(vx));}
   me.tx=me.cx;me.ty=me.cy;me.face=facing(me);
@@ -1152,6 +1368,7 @@ function guestTick(dt){
 function guestAdvance(dt){
   G.t+=dt;
   for(const s of S){
+    if(s.type==='belt'&&s.item)s.prog=Math.min(1,s.prog+dt/BELT_T);
     if(s.type==='proc'&&s.item&&s.p!=='board'){
       if(s.state==='cook')s.prog=Math.min(.99,s.prog+dt/(TIME[s.p]*G.cookMul));
       else if(s.state==='done')s.prog=Math.min(.99,s.prog+dt/(9*G.D.burn));
@@ -1167,19 +1384,17 @@ function applySnap(d){
   if(d.L){
     const fresh=!G||!G.guest||G.loc!==d.loc,lk=JSON.stringify(d.L);
     if(fresh){
-      G={guest:true,online:true,two:true,loc:d.loc,L:LOC[d.loc],dk:d.dk,D:DIFF[d.dk],up:{},queue:[],spawns:[],offers:[],sel:null,speed:3.4,cookMul:1,chopMul:1,hearts:-1};
-      for(const id of ['menu','over'])$(id).classList.remove('on');document.body.classList.remove('two','editing');chefs=[];
+      G={guest:true,online:true,two:true,loc:d.loc,L:LOC[d.loc],dk:d.dk,D:DIFF[d.dk],up:{},queue:[],spawns:[],offers:[],give:[],speed:3.4,cookMul:1,chopMul:1,hearts:-1};setKitchen();
+      for(const id of ['menu','over'])$(id).classList.remove('on');document.body.classList.remove('two','prep');chefs=[];
     }
     if(fresh||lk!==NET.lastL){
       NET.lastL=lk;
-      const ot=S.filter(s=>s.type==='table').length;
-      S=d.L.map(a=>mkStation({x:a[0],y:a[1],type:a[2],raw:a[3]||undefined,p:a[4]||undefined,seat:a[5]}));rebuildGrid();
-      if(fresh||S.filter(s=>s.type==='table').length!==ot)makeBg();
+      S=d.L.map(stUnpack);rebuildGrid();makeBg();
     }
   }
   if(!G||!G.guest||!d.s||d.s.length!==S.length)return;
   const oh=G.hearts,od=G.day,ot=G.t,g=d.g;
-  Object.assign(G,{day:g[0],t:g[1],dayLen:g[2],coins:g[3],hearts:g[4],plates:g[5],running:!!g[6],paused:!!g[7],edit:!!g[8],speed:g[9]||3.4,cookMul:g[10]||1,chopMul:g[11]||1});
+  Object.assign(G,{day:g[0],t:g[1],dayLen:g[2],coins:g[3],hearts:g[4],plates:g[5],running:!!g[6],paused:!!g[7],prep:!!g[8],speed:g[9]||3.4,cookMul:g[10]||1,chopMul:g[11]||1,shop:!!g[12],rec:g[13]||1});
   /* i valori dell'host arrivano un attimo in ritardo: se quelli calcolati qui sono appena più avanti si tengono, così le barre non tornano indietro */
   const ahead=(mine,host,max)=>mine>host&&mine-host<max;
   if(od===G.day&&ahead(ot,G.t,.5))G.t=ot;
@@ -1193,14 +1408,14 @@ function applySnap(d){
   G.queue=d.q.map((q,i)=>{const o=oq[i],p=o&&o.max===q[1]&&ahead(q[0],o.pat,.6)?o.pat:q[0];return {pat:p,max:q[1],shirt:q[2],skin:q[3],hair:q[4],style:q[5]};});
   const prev=chefs;
   chefs=d.c.map(a=>{const o=prev.find(p=>p.i===a[0]),mine=a[0]===1&&o,live=!mine&&o&&RS[a[0]].buf&&RS[a[0]].buf.length;
-    const c={i:a[0],cx:o?o.cx:a[1],cy:o?o.cy:a[2],tx:mine?o.cx:a[1],ty:mine?o.cy:a[2],fx:mine||live?o.fx:a[3],fy:mine||live?o.fy:a[4],walk:mine||live?o.walk:a[5],h:a[6]||null,work:S[a[7]]||null,face:mine?o.face:S[a[8]]||null};
+    const c={i:a[0],cx:o?o.cx:a[1],cy:o?o.cy:a[2],tx:mine?o.cx:a[1],ty:mine?o.cy:a[2],fx:mine||live?o.fx:a[3],fy:mine||live?o.fy:a[4],walk:mine||live?o.walk:a[5],h:a[6]||null,work:S[a[7]]||null,face:mine?o.face:S[a[8]]||null,carry:a[9]?stUnpack(a[9]):null,sel:a[10]?{step:a[10][0],src:a[10][1]||null,dst:a[10][2]||null}:null};
     if(o&&!mine){c.dx=o.dx;c.dy=o.dy;c.dfx=o.dfx;c.dfy=o.dfy;c.dw=o.dw;}
     return c;});
   const me=chefs.find(c=>c.i===1);
-  if(me&&(!G.running||hits(me.cx,me.cy)||Math.hypot(me.cx-d.c[1][1],me.cy-d.c[1][2])>3)){const a=d.c.find(a=>a[0]===1);if(a){me.cx=me.tx=a[1];me.cy=me.ty=a[2];}}
-  floats=d.fl.map(f=>floats.find(o=>o.x===f[0]&&o.y===f[1]&&o.txt===f[3])||{x:f[0],y:f[1],t:f[2],txt:f[3]});G.sel=d.sel>=0?S[d.sel]:null;
+  if(me&&((!G.running&&!G.prep)||hits(me.cx,me.cy)||Math.hypot(me.cx-d.c[1][1],me.cy-d.c[1][2])>3)){const a=d.c.find(a=>a[0]===1);if(a){me.cx=me.tx=a[1];me.cy=me.ty=a[2];}}
+  floats=d.fl.map(f=>floats.find(o=>o.x===f[0]&&o.y===f[1]&&o.txt===f[3])||{x:f[0],y:f[1],t:f[2],txt:f[3]});
   if(oh!==G.hearts)renderHearts();
-  const waiting=!G.running&&!$('over').classList.contains('on');
+  const waiting=!G.running&&!G.prep&&!$('over').classList.contains('on');
   $('wait').classList.toggle('on',waiting);
   if(G.paused&&G.running){$('hint').textContent='L\'host ha messo in pausa';$('hint').className='say';toastT=.3;}
 }
@@ -1355,6 +1570,7 @@ function loop(t){
     for(const c of chefs)if(c.i!==1){if(showRemote(c,dt)){c.cx=c.dx;c.cy=c.dy;}else{c.cx+=(c.tx-c.cx)*Math.min(1,dt*14);c.cy+=(c.ty-c.cy)*Math.min(1,dt*14);c.dx=c.dy=null;}}
     guestTick(dt);}
   else if(G&&G.online){hostTick(dt);const c=chefs[1];if(c)showRemote(c,dt);}
+  if(G&&G.prep&&!G.paused&&!G.guest)moveChefs(dt);
   if(G&&G.running&&!G.paused&&!G.guest){update(dt);
     for(const p of parts){p.t-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;}parts=parts.filter(p=>p.t>0);if(parts.length>160)parts.splice(0,parts.length-160);}
   toastT-=dt;floats.forEach(f=>f.t-=dt);
